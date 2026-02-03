@@ -145,7 +145,7 @@ const ProjectPage: React.FC = () => {
           </div>
 
           {/* Token Details */}
-          <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+          <div className="bg-canvas-alt rounded-3xl border border-border p-8 space-y-6">
             <h2 className="font-display text-display-sm text-ink">Token Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -182,7 +182,7 @@ const ProjectPage: React.FC = () => {
 
         {/* Right Column - Participation Card */}
         <div className="lg:w-[420px]">
-          <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+          <div className="bg-canvas-alt rounded-3xl border border-border p-8 space-y-6">
             {/* Progress */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-body-sm">

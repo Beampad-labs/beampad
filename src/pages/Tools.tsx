@@ -45,9 +45,9 @@ const tools = [
     description: 'Deploy a standard, mintable, burnable, or taxable ERC20 token.',
     icon: DollarSign,
     href: '/create/token',
-    bgColor: 'bg-ink',
-    textColor: 'text-canvas',
-    iconBg: 'bg-white/20',
+    bgColor: 'bg-canvas-alt',
+    textColor: 'text-ink',
+    iconBg: 'bg-ink/10',
   },
   {
     id: 'createPresale',
@@ -55,9 +55,9 @@ const tools = [
     description: 'Launch a presale for your token to raise funds from the community.',
     icon: Sliders,
     href: '/create/presale',
-    bgColor: 'bg-white',
+    bgColor: 'bg-canvas-alt',
     textColor: 'text-ink',
-    iconBg: 'bg-ink/5',
+    iconBg: 'bg-ink/10',
   },
   {
     id: 'tokenLocker',
@@ -65,9 +65,9 @@ const tools = [
     description: 'Lock token liquidity to build trust with your community.',
     icon: Lock,
     href: '/tools/token-locker',
-    bgColor: 'bg-white',
+    bgColor: 'bg-canvas-alt',
     textColor: 'text-ink',
-    iconBg: 'bg-ink/5',
+    iconBg: 'bg-ink/10',
   },
   {
     id: 'airdrop',
@@ -75,9 +75,9 @@ const tools = [
     description: 'Send tokens or native currency to multiple addresses at once.',
     icon: Send,
     href: '/tools/airdrop',
-    bgColor: 'bg-white',
+    bgColor: 'bg-canvas-alt',
     textColor: 'text-ink',
-    iconBg: 'bg-ink/5',
+    iconBg: 'bg-ink/10',
   },
 ];
 
@@ -108,12 +108,12 @@ const Tools: React.FC = () => {
               <motion.div key={tool.id} variants={cardVariants}>
                 <Link
                   to={tool.href}
-                  className={`${tool.bgColor} ${tool.textColor} rounded-3xl border border-border p-6 md:p-8 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 block`}
+                  className={`${tool.bgColor} ${tool.textColor} rounded-3xl border border-border p-6 md:p-8 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-accent hover:ring-1 hover:ring-accent/30 block`}
                 >
-                  <div className={`${tool.iconBg} w-12 h-12 rounded-full flex items-center justify-center mb-4`}>
+                  <div className={`${tool.iconBg} w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-accent/20 group-hover:text-accent transition-colors`}>
                     <IconComponent className="w-6 h-6" />
                   </div>
-                  <h3 className="font-display text-display-sm font-semibold mb-2">
+                  <h3 className="font-display text-display-sm font-semibold mb-2 group-hover:text-accent transition-colors">
                     {tool.title}
                   </h3>
                   <p className="text-body-sm opacity-80 mb-6">

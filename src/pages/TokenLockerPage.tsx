@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, type Address } from 'viem';
 import { TokenLocker, erc20Abi, getContractAddresses, getExplorerUrl } from '@/config';
@@ -403,16 +404,24 @@ const TokenLockerPage: React.FC = () => {
                         {lock.formattedAmount} {lock.tokenSymbol}
                       </p>
                     </div>
-                    {lock.token && (
-                      <a
-                        href={`${explorerUrl}/address/${lock.token}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-body-sm text-accent inline-flex items-center gap-1 hover:underline"
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/locks/${lock.id.toString()}`}
+                        className="btn-secondary text-sm"
                       >
-                        View Token <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
+                        View Lock
+                      </Link>
+                      {lock.token && (
+                        <a
+                          href={`${explorerUrl}/address/${lock.token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-body-sm text-accent inline-flex items-center gap-1 hover:underline"
+                        >
+                          View Token <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   {/* Time Progress */}

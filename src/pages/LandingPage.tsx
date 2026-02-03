@@ -6,7 +6,7 @@ const projects = [
   {
     id: '1',
     name: 'Nexus Protocol',
-    logo: '/vite.svg',
+    logo: '/beampad-logo.jpg',
     status: 'Live' as const,
     raisePercentage: 75,
     description: 'Cross-chain liquidity aggregation protocol enabling seamless DeFi interoperability.',
@@ -16,7 +16,7 @@ const projects = [
   {
     id: '2',
     name: 'Quantum Vault',
-    logo: '/vite.svg',
+    logo: '/beampad-logo.jpg',
     status: 'Upcoming' as const,
     raisePercentage: 0,
     description: 'Next-generation yield optimization with quantum-resistant security architecture.',
@@ -26,7 +26,7 @@ const projects = [
   {
     id: '3',
     name: 'Aether Finance',
-    logo: '/vite.svg',
+    logo: '/beampad-logo.jpg',
     status: 'Closed' as const,
     raisePercentage: 100,
     description: 'Decentralized derivatives trading platform with advanced risk management.',
@@ -148,10 +148,10 @@ const LandingPage: React.FC = () => {
 
       {/* Featured Banner */}
       <motion.section variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-3xl bg-ink p-8 md:p-12">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-canvas-alt via-canvas to-canvas-alt p-8 md:p-12">
           {/* Background Pattern */}
           <div
-            className="absolute inset-0 opacity-10"
+            className="absolute inset-0 opacity-15"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
@@ -159,26 +159,26 @@ const LandingPage: React.FC = () => {
 
           {/* Gradient Accent */}
           <div
-            className="absolute top-0 right-0 w-1/2 h-full opacity-25"
+            className="absolute top-0 right-0 w-1/2 h-full opacity-30"
             style={{
               background:
-                'radial-gradient(ellipse at top right, rgba(79, 70, 229, 0.6), transparent 70%)',
+                'radial-gradient(ellipse at top right, rgba(139, 155, 249, 0.35), transparent 70%)',
             }}
           />
 
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-4 max-w-xl">
-              <h3 className="font-display text-display-md text-canvas">
+              <h3 className="font-display text-display-md text-ink">
                 Stake BEAM to unlock
                 <br />
-                <span className="text-accent">exclusive allocations</span>
+                <span className="text-accent-gradient">exclusive allocations</span>
               </h3>
-              <p className="text-body text-canvas/70">
+              <p className="text-body text-ink-muted">
                 Higher tier levels unlock guaranteed allocations and priority
                 access to the most anticipated launches.
               </p>
             </div>
-            <button className="btn-primary bg-accent text-ink hover:bg-accent-hover">
+            <button className="btn-primary">
               Start Staking
             </button>
           </div>

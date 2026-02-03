@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { useLaunchpadPresales } from '@/lib/hooks/useLaunchpadPresales';
+import CountUp from '@/components/ui/CountUp';
 import {
   Rocket,
   Wallet,
@@ -92,21 +93,27 @@ const HomePage: React.FC = () => {
             <div className="w-12 h-12 rounded-2xl bg-accent-muted text-accent mx-auto flex items-center justify-center mb-4">
               <TrendingUp className="w-6 h-6" />
             </div>
-            <p className="font-display text-display-md text-ink">$2.4M+</p>
+            <p className="font-display text-display-md text-ink">
+              <CountUp to={2.4} durationMs={1400} decimals={1} prefix="$" suffix="M+" />
+            </p>
             <p className="text-body text-ink-muted mt-1">Total Raised</p>
           </div>
           <div className="stat-card text-center">
             <div className="w-12 h-12 rounded-2xl bg-accent-muted text-accent mx-auto flex items-center justify-center mb-4">
               <Rocket className="w-6 h-6" />
             </div>
-            <p className="font-display text-display-md text-ink">12</p>
+            <p className="font-display text-display-md text-ink">
+              <CountUp to={12} durationMs={1200} />
+            </p>
             <p className="text-body text-ink-muted mt-1">Projects Launched</p>
           </div>
           <div className="stat-card text-center">
             <div className="w-12 h-12 rounded-2xl bg-accent-muted text-accent mx-auto flex items-center justify-center mb-4">
               <Users className="w-6 h-6" />
             </div>
-            <p className="font-display text-display-md text-ink">3,200+</p>
+            <p className="font-display text-display-md text-ink">
+              <CountUp to={3200} durationMs={1600} suffix="+" />
+            </p>
             <p className="text-body text-ink-muted mt-1">Active Participants</p>
           </div>
         </div>
@@ -148,8 +155,8 @@ const HomePage: React.FC = () => {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           presale.status === 'live'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-amber-100 text-amber-700'
+                            ? 'bg-status-live-bg text-status-live'
+                            : 'bg-status-upcoming-bg text-status-upcoming'
                         }`}
                       >
                         {presale.status === 'live' ? 'Live' : 'Upcoming'}
@@ -256,34 +263,34 @@ const HomePage: React.FC = () => {
 
       {/* CTA Banner */}
       <motion.section variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-3xl bg-ink p-8 md:p-12">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-canvas-alt via-canvas to-canvas-alt p-8 md:p-12">
           {/* Background Pattern */}
           <div
-            className="absolute inset-0 opacity-10"
+            className="absolute inset-0 opacity-15"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
           />
           <div
-            className="absolute top-0 right-0 w-1/2 h-full opacity-25"
+            className="absolute top-0 right-0 w-1/2 h-full opacity-30"
             style={{
               background:
-                'radial-gradient(ellipse at top right, rgba(79, 70, 229, 0.6), transparent 70%)',
+                'radial-gradient(ellipse at top right, rgba(139, 155, 249, 0.35), transparent 70%)',
             }}
           />
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-4 max-w-xl">
-              <h3 className="font-display text-display-md text-canvas">
+              <h3 className="font-display text-display-md text-ink">
                 Stake BEAM to unlock
                 <br />
-                <span className="text-accent">exclusive allocations</span>
+                <span className="text-accent-gradient">exclusive allocations</span>
               </h3>
-              <p className="text-body text-canvas/70">
+              <p className="text-body text-ink-muted">
                 Higher tier levels unlock guaranteed allocations and priority access to the most
                 anticipated launches on BeamPad.
               </p>
             </div>
-            <Link to="/staking" className="btn-primary bg-accent text-ink hover:bg-accent-hover">
+            <Link to="/staking" className="btn-primary">
               Start Staking
             </Link>
           </div>

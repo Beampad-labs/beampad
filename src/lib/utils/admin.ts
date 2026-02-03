@@ -16,8 +16,9 @@ export function useFactoryOwner() {
   const { data: factoryOwner, isLoading, refetch } = useReadContract({
     address: presaleFactory,
     abi: PresaleFactory,
-    functionName: 'owner',
+    functionName: 'factoryOwner',
     query: {
+      enabled: Boolean(presaleFactory) && presaleFactory !== '0x0000000000000000000000000000000000000000',
       refetchInterval: 30000, // Refetch every 30 seconds
     },
   });
@@ -33,11 +34,20 @@ export function useFactoryOwner() {
  * Hook to get the fee recipient address
  */
 export function useFeeRecipient() {
-  // feeRecipient is not in the current PresaleFactory ABI; stub for now
+  const { presaleFactory } = useChainContracts();
+  const { data: feeRecipient, isLoading, refetch } = useReadContract({
+    address: presaleFactory,
+    abi: PresaleFactory,
+    functionName: 'feeRecipient',
+    query: {
+      enabled: Boolean(presaleFactory) && presaleFactory !== '0x0000000000000000000000000000000000000000',
+      refetchInterval: 30000,
+    },
+  });
   return {
-    feeRecipient: undefined as Address | undefined,
-    isLoading: false,
-    refetch: () => Promise.resolve({} as any),
+    feeRecipient: feeRecipient as Address | undefined,
+    isLoading,
+    refetch,
   };
 }
 

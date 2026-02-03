@@ -118,7 +118,7 @@ const PresalesPage: React.FC = () => {
     >
       {/* Header */}
       <motion.section variants={itemVariants} className="space-y-2">
-        <h1 className="font-display text-display-lg text-ink">IDO Launchpad</h1>
+        <h1 className="font-display text-display-lg text-ink">Launchpad</h1>
         <p className="text-body-lg text-ink-muted">
           Discover and participate in the latest token launches on Beam.
         </p>
@@ -145,7 +145,7 @@ const PresalesPage: React.FC = () => {
 
       {/* Presale Grid */}
       <motion.section variants={itemVariants}>
-        {isLoading ? (
+        {isLoading && presales.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="w-8 h-8 text-accent animate-spin" />
             <p className="text-body text-ink-muted">Loading presales...</p>

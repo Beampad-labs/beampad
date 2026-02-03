@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="beamGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F472B6" />
+      <stop offset="25%" stop-color="#A855F7" />
+      <stop offset="50%" stop-color="#60A5FA" />
+      <stop offset="75%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="384" height="384" rx="92" fill="none" stroke="url(#beamGradient)" stroke-width="32" />
+  <rect x="156" y="184" width="200" height="40" rx="20" fill="url(#beamGradient)" />
+  <rect x="156" y="244" width="200" height="40" rx="20" fill="url(#beamGradient)" />
+  <rect x="156" y="304" width="200" height="40" rx="20" fill="url(#beamGradient)" />
+</svg>

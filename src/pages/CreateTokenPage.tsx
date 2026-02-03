@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseUnits, type Address } from 'viem';
+import { decodeEventLog, parseUnits, type Address } from 'viem';
 import { TokenFactory, getContractAddresses, getExplorerUrl } from '@/config';
 import {
   Coins,
@@ -15,6 +16,8 @@ import {
   Copy,
   AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useBlockchainStore } from '@/lib/store/blockchain-store';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -101,6 +104,12 @@ const CreateTokenPage: React.FC = () => {
   const [taxBps, setTaxBps] = useState('');
   const [createdTokenAddress, setCreatedTokenAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const lastToastHash = useRef<string | null>(null);
+  const lastErrorMessage = useRef<string | null>(null);
+  const hasHandledSuccess = useRef(false);
+
+  const { getUserTokens, setUserTokens } = useBlockchainStore();
 
   const {
     data: hash,
@@ -113,24 +122,77 @@ const CreateTokenPage: React.FC = () => {
   const {
     isLoading: isConfirming,
     isSuccess,
+    isError: isReceiptError,
+    error: receiptError,
     data: receipt,
   } = useWaitForTransactionReceipt({ hash });
 
+  const formatTxError = (error: unknown) => {
+    const message = (error as { message?: string })?.message ?? '';
+    const lowered = message.toLowerCase();
+
+    if (
+      lowered.includes('user rejected') ||
+      lowered.includes('user denied') ||
+      lowered.includes('rejected the request') ||
+      lowered.includes('denied')
+    ) {
+      return 'Transaction cancelled by user.';
+    }
+
+    if (lowered.includes('insufficient funds')) {
+      return 'Insufficient funds to pay for gas.';
+    }
+
+    if (lowered.includes('nonce')) {
+      return 'Nonce error. Please try again.';
+    }
+
+    return message.length > 0 ? message : 'Transaction failed.';
+  };
+
   // Extract created token address from receipt logs
   useEffect(() => {
-    if (isSuccess && receipt?.logs) {
-      // TokenCreated event - first indexed param is the token address
-      for (const log of receipt.logs) {
-        if (log.topics.length >= 2) {
-          const tokenAddr = `0x${log.topics[1]?.slice(26)}`;
-          if (tokenAddr && tokenAddr.length === 42) {
-            setCreatedTokenAddress(tokenAddr);
+    if (!isSuccess || !receipt?.logs) return;
+
+    const extractTopicAddress = (topic?: string) => {
+      if (!topic || topic.length !== 66) return null;
+      return `0x${topic.slice(26)}` as Address;
+    };
+
+    let tokenAddress: string | null = null;
+    for (const log of receipt.logs) {
+      if (log.address?.toLowerCase() !== contracts.tokenFactory.toLowerCase()) continue;
+
+      try {
+        const decoded = decodeEventLog({
+          abi: TokenFactory,
+          data: log.data,
+          topics: log.topics,
+        });
+
+        if (decoded.eventName === 'TokenCreated') {
+          const args = decoded.args as { token?: Address };
+          if (args?.token) {
+            tokenAddress = args.token;
             break;
           }
         }
+      } catch {
+        // Fallback to topic positions (handles ABI variance)
+        if (log.topics?.length >= 3) {
+          tokenAddress = extractTopicAddress(log.topics[2]);
+        } else if (log.topics?.length >= 2) {
+          tokenAddress = extractTopicAddress(log.topics[1]);
+        }
+        if (tokenAddress) break;
       }
     }
-  }, [isSuccess, receipt]);
+
+    if (tokenAddress) {
+      setCreatedTokenAddress(tokenAddress);
+    }
+  }, [isSuccess, receipt, contracts.tokenFactory]);
 
   // Default recipient to connected wallet
   useEffect(() => {
@@ -138,6 +200,57 @@ const CreateTokenPage: React.FC = () => {
       setRecipient(userAddress);
     }
   }, [userAddress, recipient]);
+
+  useEffect(() => {
+    if (hash && lastToastHash.current !== hash) {
+      toast.message('Transaction submitted. Waiting for confirmation...');
+      lastToastHash.current = hash;
+    }
+  }, [hash]);
+
+  useEffect(() => {
+    if (!isSuccess || hasHandledSuccess.current) return;
+
+    toast.success('Token created successfully.');
+    setShowSuccessModal(true);
+
+    if (userAddress) {
+      const existing = getUserTokens(userAddress) ?? [];
+      if (createdTokenAddress && !existing.some((addr) => addr.toLowerCase() === createdTokenAddress.toLowerCase())) {
+        setUserTokens(userAddress, [createdTokenAddress as Address, ...existing]);
+      }
+    }
+
+    hasHandledSuccess.current = true;
+  }, [isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
+
+  useEffect(() => {
+    if (writeError) {
+      const message = formatTxError(writeError);
+      if (lastErrorMessage.current !== message) {
+        toast.error(message);
+        lastErrorMessage.current = message;
+      }
+    }
+  }, [writeError]);
+
+  useEffect(() => {
+    if (isReceiptError && receiptError) {
+      const message = formatTxError(receiptError);
+      if (lastErrorMessage.current !== message) {
+        toast.error(message);
+        lastErrorMessage.current = message;
+      }
+    }
+  }, [isReceiptError, receiptError]);
+
+  useEffect(() => {
+    if (!isSuccess || !createdTokenAddress || !userAddress) return;
+    const existing = getUserTokens(userAddress) ?? [];
+    if (!existing.some((addr) => addr.toLowerCase() === createdTokenAddress.toLowerCase())) {
+      setUserTokens(userAddress, [createdTokenAddress as Address, ...existing]);
+    }
+  }, [isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
 
   const handleSubmit = () => {
     if (!name || !symbol || !initialSupply || !recipient) return;
@@ -202,62 +315,11 @@ const CreateTokenPage: React.FC = () => {
     setTaxBps('');
     setCreatedTokenAddress(null);
     setSelectedType('plain');
+    setShowSuccessModal(false);
+    lastToastHash.current = null;
+    lastErrorMessage.current = null;
+    hasHandledSuccess.current = false;
   };
-
-  // Success state
-  if (isSuccess && createdTokenAddress) {
-    return (
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-2xl mx-auto space-y-8"
-      >
-        <motion.div
-          variants={itemVariants}
-          className="glass-card rounded-3xl p-8 text-center space-y-6"
-        >
-          <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 mx-auto flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="font-display text-display-md text-ink">Token Created!</h2>
-            <p className="text-body text-ink-muted">
-              Your {symbol} token has been deployed successfully.
-            </p>
-          </div>
-          <div className="bg-ink/[0.03] rounded-2xl p-4 space-y-2">
-            <p className="text-body-sm text-ink-muted">Token Address</p>
-            <div className="flex items-center gap-2 justify-center">
-              <code className="text-body font-mono text-ink break-all">
-                {createdTokenAddress}
-              </code>
-              <button
-                onClick={() => handleCopy(createdTokenAddress)}
-                className="p-1.5 rounded-lg hover:bg-ink/5 transition-colors"
-              >
-                <Copy className="w-4 h-4 text-ink-muted" />
-              </button>
-            </div>
-            {copied && <p className="text-xs text-green-600">Copied!</p>}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={`${explorerUrl}/address/${createdTokenAddress}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary inline-flex items-center gap-2"
-            >
-              View on Explorer <ExternalLink className="w-4 h-4" />
-            </a>
-            <button onClick={handleReset} className="btn-secondary">
-              Create Another
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -393,13 +455,13 @@ const CreateTokenPage: React.FC = () => {
           </div>
         )}
 
-        {/* Error */}
-        {writeError && (
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <p>{writeError.message?.slice(0, 200) || 'Transaction failed'}</p>
-          </div>
-        )}
+      {/* Error */}
+      {writeError && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-status-error-bg text-status-error text-sm">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <p>{formatTxError(writeError)}</p>
+        </div>
+      )}
 
         {/* Submit */}
         <button
@@ -427,6 +489,90 @@ const CreateTokenPage: React.FC = () => {
           )}
         </button>
       </motion.section>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-xl glass-card rounded-3xl p-8 text-center space-y-6"
+          >
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-300 mx-auto flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-display text-display-md text-ink">Token Created</h2>
+              <p className="text-body text-ink-muted">
+                Your token has been deployed successfully. Next steps are ready below.
+              </p>
+            </div>
+            {createdTokenAddress && (
+              <div className="bg-ink/[0.08] rounded-2xl p-4 space-y-2">
+                <p className="text-body-sm text-ink-muted">Token Address</p>
+                <div className="flex items-center gap-2 justify-center">
+                  <code className="text-body font-mono text-ink break-all">
+                    {createdTokenAddress}
+                  </code>
+                  <button
+                    onClick={() => handleCopy(createdTokenAddress)}
+                    className="p-1.5 rounded-lg hover:bg-ink/10 transition-colors"
+                  >
+                    <Copy className="w-4 h-4 text-ink-muted" />
+                  </button>
+                </div>
+                {copied && <p className="text-xs text-emerald-300">Copied!</p>}
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {createdTokenAddress && (
+                <a
+                  href={`${explorerUrl}/address/${createdTokenAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-flex items-center gap-2 justify-center"
+                >
+                  View on Explorer <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+              {hash && (
+                <a
+                  href={`${explorerUrl}/tx/${hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary inline-flex items-center gap-2 justify-center"
+                >
+                  View Tx <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+            <button
+              onClick={handleReset}
+              className="btn-primary w-full"
+            >
+              Create Another
+            </button>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="btn-secondary w-full"
+            >
+              Back to Form
+            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Link to="/dashboard" className="btn-ghost border border-border">
+                Go to Dashboard
+              </Link>
+              <Link to="/create/presale" className="btn-ghost border border-border">
+                Launch Presale
+              </Link>
+              <Link to="/tools" className="btn-ghost border border-border">
+                Airdrop / Lock
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };

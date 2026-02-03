@@ -161,8 +161,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                     x2="100%"
                     y2="100%"
                   >
-                    <stop offset="0%" stopColor="#4F46E5" />
-                    <stop offset="100%" stopColor="#818CF8" />
+                    <stop offset="0%" stopColor="#8B9BF9" />
+                    <stop offset="45%" stopColor="#8BB7F9" />
+                    <stop offset="75%" stopColor="#8FDCC4" />
+                    <stop offset="100%" stopColor="#F3DEB0" />
                   </linearGradient>
                 </defs>
               </svg>

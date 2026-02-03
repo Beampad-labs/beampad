@@ -17,6 +17,9 @@ export function usePresales(forceRefetch = false) {
   const isStale = isPresalesStale();
   const shouldFetch = isStale || forceRefetch || !cachedPresales;
   const { presaleFactory } = useChainContracts();
+  const isFactoryReady = Boolean(
+    presaleFactory && presaleFactory !== '0x0000000000000000000000000000000000000000'
+  );
 
   // First get total count of presales
   const { data: totalPresales, isLoading: isLoadingTotal, refetch: refetchTotal } = useReadContract({
@@ -24,7 +27,7 @@ export function usePresales(forceRefetch = false) {
     address: presaleFactory,
     functionName: 'totalPresales',
     query: {
-      enabled: shouldFetch,
+      enabled: shouldFetch && isFactoryReady,
     },
   });
 
@@ -43,7 +46,7 @@ export function usePresales(forceRefetch = false) {
   const { data: addressResults, isLoading: isLoadingAddresses, refetch: refetchAddresses } = useReadContracts({
     contracts: addressQueries,
     query: {
-      enabled: addressQueries.length > 0,
+      enabled: addressQueries.length > 0 && isFactoryReady,
     },
   });
 
@@ -58,10 +61,10 @@ export function usePresales(forceRefetch = false) {
   const isLoading = isLoadingTotal || isLoadingAddresses;
 
   useEffect(() => {
-    if (shouldFetch && isLoading) {
+    if (shouldFetch && isFactoryReady && isLoading) {
       setPresalesLoading(true);
     }
-  }, [shouldFetch, isLoading, setPresalesLoading]);
+  }, [shouldFetch, isFactoryReady, isLoading, setPresalesLoading]);
 
   useEffect(() => {
     if (presaleAddresses && !isLoading) {
@@ -70,6 +73,7 @@ export function usePresales(forceRefetch = false) {
   }, [presaleAddresses, isLoading, setPresales]);
 
   const handleRefetch = async () => {
+    if (!isFactoryReady) return;
     setPresalesLoading(true);
     await refetchTotal();
     await refetchAddresses();
@@ -77,7 +81,7 @@ export function usePresales(forceRefetch = false) {
 
   return {
     presales: cachedPresales || presaleAddresses || [],
-    isLoading: shouldFetch ? isLoading : false,
+    isLoading: shouldFetch && isFactoryReady ? isLoading : false,
     refetch: handleRefetch,
   };
 }

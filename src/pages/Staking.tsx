@@ -139,7 +139,7 @@ const Staking: React.FC = () => {
 
       {isZeroAddress ? (
         <motion.section variants={itemVariants}>
-          <div className="bg-white rounded-3xl border border-border p-12 text-center">
+          <div className="bg-canvas-alt rounded-3xl border border-border p-12 text-center">
             <div className="w-16 h-16 rounded-full bg-canvas-alt flex items-center justify-center mx-auto mb-4">
               <Zap className="w-6 h-6 text-ink-muted" />
             </div>
@@ -196,13 +196,13 @@ const Staking: React.FC = () => {
           {/* Staking Form */}
           <motion.section variants={itemVariants}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+              <div className="bg-canvas-alt rounded-3xl border border-border p-8 space-y-6">
                 {/* Tabs */}
                 <div className="flex gap-2 p-1 bg-canvas-alt rounded-xl">
                   <button
                     onClick={() => { setActiveTab('stake'); setAmount(''); }}
                     className={`flex-1 py-2.5 rounded-lg text-body-sm font-medium transition-all duration-300 ${
-                      activeTab === 'stake' ? 'bg-white text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
+                      activeTab === 'stake' ? 'bg-canvas text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
                     }`}
                   >
                     Stake
@@ -210,7 +210,7 @@ const Staking: React.FC = () => {
                   <button
                     onClick={() => { setActiveTab('unstake'); setAmount(''); }}
                     className={`flex-1 py-2.5 rounded-lg text-body-sm font-medium transition-all duration-300 ${
-                      activeTab === 'unstake' ? 'bg-white text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
+                      activeTab === 'unstake' ? 'bg-canvas text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
                     }`}
                   >
                     Unstake
@@ -263,7 +263,7 @@ const Staking: React.FC = () => {
               </div>
 
               {/* Claim Rewards */}
-              <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+              <div className="bg-canvas-alt rounded-3xl border border-border p-8 space-y-6">
                 <h2 className="font-display text-display-sm text-ink">Claim Rewards</h2>
                 <p className="text-body text-ink-muted">
                   You have{' '}

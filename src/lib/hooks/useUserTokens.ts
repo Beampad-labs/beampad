@@ -18,7 +18,7 @@ export function useUserTokens(forceRefetch = false) {
   } = useBlockchainStore();
 
   const cachedTokens = address ? getUserTokens(address) : null;
-  const shouldFetch = Boolean(address);
+  const shouldFetch = Boolean(address && tokenFactory && tokenFactory !== '0x0000000000000000000000000000000000000000');
 
   const { data: tokens, isLoading, refetch } = useReadContract({
     abi: TokenFactory,

@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -11,10 +12,15 @@ import ManagePresalePage from './pages/ManagePresalePage';
 import CreateTokenPage from './pages/CreateTokenPage';
 import CreatePresalePage from './pages/CreatePresalePage';
 import TokenLockerPage from './pages/TokenLockerPage';
+import LockDetailPage from './pages/LockDetailPage';
 import AirdropPage from './pages/AirdropPage';
 import Staking from './pages/Staking';
 import Tools from './pages/Tools';
 import ProjectPage from './pages/ProjectPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminPresalesPage from './pages/admin/AdminPresalesPage';
+import AdminWhitelistPage from './pages/admin/AdminWhitelistPage';
+import TokensPage from './pages/TokensPage';
 
 const AppRoutes = () => {
   return (
@@ -32,10 +38,19 @@ const AppRoutes = () => {
           <Route path="/create/token" element={<CreateTokenPage />} />
           <Route path="/create/presale" element={<CreatePresalePage />} />
           <Route path="/tools/token-locker" element={<TokenLockerPage />} />
+          <Route path="/locks/:id" element={<LockDetailPage />} />
           <Route path="/tools/airdrop" element={<AirdropPage />} />
           <Route path="/tools" element={<Tools />} />
           <Route path="/staking" element={<Staking />} />
           <Route path="/project/:id" element={<ProjectPage />} />
+          <Route path="/tokens" element={<TokensPage />} />
+        </Route>
+
+        {/* Admin routes */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/presales" element={<AdminPresalesPage />} />
+          <Route path="/admin/whitelist" element={<AdminWhitelistPage />} />
         </Route>
       </Routes>
     </Layout>

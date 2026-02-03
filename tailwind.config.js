@@ -8,17 +8,17 @@ export default {
     extend: {
       colors: {
         // Vibrant color palette
-        'canvas': '#F9FAFB',
-        'canvas-alt': '#F3F4F6',
-        'ink': '#111827',
-        'ink-muted': '#4B5563',
-        'ink-faint': '#9CA3AF',
-        'border': '#E5E7EB',
-        'border-strong': '#D1D5DB',
-        // Accent - vibrant indigo
-        'accent': '#4F46E5',
-        'accent-hover': '#4338CA',
-        'accent-muted': 'rgba(79, 70, 229, 0.1)',
+        'canvas': '#0B0D12',
+        'canvas-alt': '#121826',
+        'ink': '#F8FAFC',
+        'ink-muted': '#9AA4B2',
+        'ink-faint': '#6B7280',
+        'border': '#1F2937',
+        'border-strong': '#2B3648',
+        // Accent - soft periwinkle
+        'accent': '#8B9BF9',
+        'accent-hover': '#7A89F0',
+        'accent-muted': 'rgba(139, 155, 249, 0.16)',
         // Secondary colors for variety
         'pastel-lavender': '#818CF8',
         'pastel-mint': '#34D399',
@@ -26,14 +26,14 @@ export default {
         'pastel-sky': '#60A5FA',
         'pastel-lemon': '#FCD34D',
         // Status colors - vibrant
-        'status-live': '#10B981',
-        'status-live-bg': 'rgba(16, 185, 129, 0.1)',
-        'status-upcoming': '#3B82F6',
-        'status-upcoming-bg': 'rgba(59, 130, 246, 0.1)',
-        'status-closed': '#6B7280',
-        'status-closed-bg': 'rgba(107, 114, 128, 0.1)',
-        'status-error': '#EF4444',
-        'status-error-bg': 'rgba(239, 68, 68, 0.1)',
+        'status-live': '#34D399',
+        'status-live-bg': 'rgba(52, 211, 153, 0.16)',
+        'status-upcoming': '#60A5FA',
+        'status-upcoming-bg': 'rgba(96, 165, 250, 0.16)',
+        'status-closed': '#94A3B8',
+        'status-closed-bg': 'rgba(148, 163, 184, 0.16)',
+        'status-error': '#F87171',
+        'status-error-bg': 'rgba(248, 113, 113, 0.16)',
       },
       fontFamily: {
         display: ['"Instrument Serif"', 'Georgia', 'serif'],

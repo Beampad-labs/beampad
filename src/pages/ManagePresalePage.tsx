@@ -1,16 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   useAccount,
   useChainId,
-  useWriteContract,
+  useReadContract,
+  useReadContracts,
   useWaitForTransactionReceipt,
+  useWriteContract,
 } from 'wagmi';
-import { type Address, formatUnits, parseUnits } from 'viem';
+import { type Address, formatUnits, isAddress } from 'viem';
+import { toast } from 'sonner';
 import { useLaunchpadPresale } from '@/lib/hooks/useLaunchpadPresales';
-import { usePresaleOwnerActions } from '@/lib/hooks/usePresaleActions';
-import { PresaleContract, erc20Abi, getExplorerUrl } from '@/config';
+import { useLaunchpadPresaleStore } from '@/lib/store/launchpad-presale-store';
+import { LaunchpadPresaleContract, PresaleContract, erc20Abi, getExplorerUrl } from '@/config';
+import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
 import {
   ArrowLeft,
   Loader2,
@@ -52,86 +56,210 @@ const itemVariants = {
 function getStatusLabel(status: string) {
   switch (status) {
     case 'live':
-      return { text: 'Live', color: 'bg-green-100 text-green-700' };
+      return { text: 'Live', color: 'bg-status-live/15 text-status-live' };
     case 'upcoming':
-      return { text: 'Upcoming', color: 'bg-amber-100 text-amber-700' };
+      return { text: 'Upcoming', color: 'bg-status-warning/15 text-status-warning' };
     case 'ended':
     case 'finalized':
-      return { text: 'Finalized', color: 'bg-slate-100 text-slate-600' };
+      return { text: 'Finalized', color: 'bg-ink/10 text-ink-muted' };
     case 'cancelled':
-      return { text: 'Cancelled', color: 'bg-red-100 text-red-600' };
+      return { text: 'Cancelled', color: 'bg-status-error/15 text-status-error' };
     default:
-      return { text: status, color: 'bg-slate-100 text-slate-600' };
+      return { text: status, color: 'bg-ink/10 text-ink-muted' };
   }
 }
 
+const RATE_DIVISOR = 100n;
+
 const ManagePresalePage: React.FC = () => {
   const { address: presaleAddr } = useParams<{ address: string }>();
-  const presaleAddress = presaleAddr as Address | undefined;
+  const presaleAddress = presaleAddr && isAddress(presaleAddr) ? (presaleAddr as Address) : undefined;
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const explorerUrl = getExplorerUrl(chainId);
 
   const { presale, isLoading, refetch } = useLaunchpadPresale(presaleAddress);
+  const getPresaleStatus = useLaunchpadPresaleStore((state) => state.getPresaleStatus);
+  const presaleStatus = presale ? getPresaleStatus(presale) : 'upcoming';
+
+  const { data: saleTokenInfo } = useReadContracts({
+    contracts: presale?.saleToken
+      ? [
+          { abi: erc20Abi, address: presale.saleToken, functionName: 'symbol' },
+          { abi: erc20Abi, address: presale.saleToken, functionName: 'decimals' },
+          { abi: erc20Abi, address: presale.saleToken, functionName: 'totalSupply' },
+        ]
+      : [],
+    query: {
+      enabled: Boolean(presale?.saleToken),
+    },
+  });
+
+  const saleTokenSymbol = (saleTokenInfo?.[0]?.result as string) || presale?.saleTokenSymbol || 'TOKEN';
+  const saleTokenDecimals = (saleTokenInfo?.[1]?.result as number) || presale?.saleTokenDecimals || 18;
+  const totalSupply = saleTokenInfo?.[2]?.result as bigint | undefined;
+
+  const saleAmount = useMemo(() => {
+    if (!presale?.hardCap || !presale?.rate) return 0n;
+    try {
+      return (presale.hardCap * presale.rate) / RATE_DIVISOR;
+    } catch {
+      return 0n;
+    }
+  }, [presale?.hardCap, presale?.rate]);
+
+  const launchpadFee = useMemo(() => {
+    if (!totalSupply) return 0n;
+    return totalSupply / 50n; // 2% fee
+  }, [totalSupply]);
+
+  const totalRequired = saleAmount + launchpadFee;
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: presale?.saleToken,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: userAddress && presaleAddress ? [userAddress, presaleAddress] : undefined,
+    query: {
+      enabled: Boolean(userAddress && presaleAddress && presale?.saleToken),
+      refetchInterval: 5000,
+    },
+  });
+
+  const { data: contractBalance, refetch: refetchBalance } = useReadContract({
+    address: presale?.saleToken,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: presaleAddress ? [presaleAddress] : undefined,
+    query: {
+      enabled: Boolean(presaleAddress && presale?.saleToken),
+      refetchInterval: 5000,
+    },
+  });
 
   const {
-    depositSaleTokens,
-    finalize,
-    cancelPresale,
-    withdrawProceeds,
-    withdrawUnusedTokens,
+    writeContract: writeApprove,
+    data: approveHash,
+    isPending: isApprovePending,
+    error: approveError,
+    reset: resetApprove,
+  } = useWriteContract();
+
+  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
+    useWaitForTransactionReceipt({ hash: approveHash });
+
+  const {
+    writeContract: writeDeposit,
+    data: depositHash,
+    isPending: isDepositPending,
+    error: depositError,
+    reset: resetDeposit,
+  } = useWriteContract();
+
+  const { isLoading: isDepositConfirming, isSuccess: isDepositSuccess } =
+    useWaitForTransactionReceipt({ hash: depositHash });
+
+  const {
+    writeContract: writeOwnerAction,
+    data: ownerActionHash,
     isPending: isOwnerPending,
-    isConfirming: isOwnerConfirming,
-    isSuccess: isOwnerSuccess,
     error: ownerError,
-  } = usePresaleOwnerActions();
+    reset: resetOwnerAction,
+  } = useWriteContract();
 
-  // Whitelist management
+  const { isLoading: isOwnerConfirming, isSuccess: isOwnerSuccess } =
+    useWaitForTransactionReceipt({ hash: ownerActionHash });
+
   const {
+    writeContract: writeWhitelist,
     data: whitelistHash,
-    writeContract: whitelistWrite,
     isPending: isWhitelistPending,
     error: whitelistError,
+    reset: resetWhitelist,
   } = useWriteContract();
 
-  const {
-    isLoading: isWhitelistConfirming,
-    isSuccess: isWhitelistSuccess,
-  } = useWaitForTransactionReceipt({ hash: whitelistHash });
+  const { isLoading: isWhitelistConfirming, isSuccess: isWhitelistSuccess } =
+    useWaitForTransactionReceipt({ hash: whitelistHash });
 
-  // Deposit approval
-  const {
-    data: approveHash,
-    writeContract: approveWrite,
-    isPending: isApprovePending,
-  } = useWriteContract();
-
-  const {
-    isLoading: isApproveConfirming,
-    isSuccess: isApproveSuccess,
-  } = useWaitForTransactionReceipt({ hash: approveHash });
-
-  const [depositAmount, setDepositAmount] = useState('');
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [whitelistAddresses, setWhitelistAddresses] = useState('');
-  const [whitelistAction, setWhitelistAction] = useState<'add' | 'remove'>('add');
-  const [lastAction, setLastAction] = useState('');
+  const [activeOwnerAction, setActiveOwnerAction] = useState<string | null>(null);
+  const [activeWhitelistAction, setActiveWhitelistAction] = useState<string | null>(null);
+  const [singleWhitelist, setSingleWhitelist] = useState('');
+  const [bulkWhitelist, setBulkWhitelist] = useState('');
+  const [removeWhitelist, setRemoveWhitelist] = useState('');
 
   useEffect(() => {
-    if (isOwnerSuccess) {
+    if (approveError) {
+      toast.error(getFriendlyTxErrorMessage(approveError, 'Approval'));
+    }
+  }, [approveError]);
+
+  useEffect(() => {
+    if (depositError) {
+      toast.error(getFriendlyTxErrorMessage(depositError, 'Deposit'));
+    }
+  }, [depositError]);
+
+  useEffect(() => {
+    if (ownerError) {
+      toast.error(getFriendlyTxErrorMessage(ownerError, 'Action'));
+    }
+  }, [ownerError]);
+
+  useEffect(() => {
+    if (whitelistError) {
+      toast.error(getFriendlyTxErrorMessage(whitelistError, 'Whitelist update'));
+    }
+  }, [whitelistError]);
+
+  useEffect(() => {
+    if (isApproveSuccess) {
+      toast.success('Token allowance approved.');
+      resetApprove();
+      refetchAllowance();
       refetch();
-      setLastAction('Action completed successfully.');
-      setTimeout(() => setLastAction(''), 5000);
     }
-  }, [isOwnerSuccess, refetch]);
+  }, [isApproveSuccess, resetApprove, refetchAllowance, refetch]);
 
   useEffect(() => {
-    if (isWhitelistSuccess) {
-      setWhitelistAddresses('');
-      setLastAction('Whitelist updated successfully.');
-      setTimeout(() => setLastAction(''), 5000);
+    if (isDepositSuccess) {
+      toast.success('Sale tokens deposited successfully.');
+      resetDeposit();
+      refetchBalance();
+      refetch();
     }
-  }, [isWhitelistSuccess]);
+  }, [isDepositSuccess, resetDeposit, refetchBalance, refetch]);
+
+  useEffect(() => {
+    if (isOwnerSuccess && activeOwnerAction) {
+      const labels: Record<string, string> = {
+        finalize: 'Presale finalized',
+        cancel: 'Presale cancelled',
+        withdrawProceeds: 'Proceeds withdrawn',
+        withdrawTokens: 'Unsold tokens withdrawn',
+      };
+      toast.success(labels[activeOwnerAction] || 'Transaction confirmed');
+      setActiveOwnerAction(null);
+      resetOwnerAction();
+      refetch();
+    }
+  }, [isOwnerSuccess, activeOwnerAction, resetOwnerAction, refetch]);
+
+  useEffect(() => {
+    if (isWhitelistSuccess && activeWhitelistAction) {
+      const labels: Record<string, string> = {
+        addOne: 'Wallet added to whitelist',
+        bulkAdd: 'Whitelist updated',
+        remove: 'Wallet removed from whitelist',
+      };
+      toast.success(labels[activeWhitelistAction] || 'Whitelist updated');
+      setActiveWhitelistAction(null);
+      resetWhitelist();
+      if (activeWhitelistAction === 'addOne') setSingleWhitelist('');
+      if (activeWhitelistAction === 'bulkAdd') setBulkWhitelist('');
+      if (activeWhitelistAction === 'remove') setRemoveWhitelist('');
+      refetch();
+    }
+  }, [isWhitelistSuccess, activeWhitelistAction, resetWhitelist, refetch]);
 
   const isOwner =
     isConnected &&
@@ -140,67 +268,173 @@ const ManagePresalePage: React.FC = () => {
     userAddress.toLowerCase() === presale.owner.toLowerCase();
 
   const paymentDecimals = presale?.paymentTokenDecimals ?? 18;
-  const saleDecimals = presale?.saleTokenDecimals ?? 18;
+  const paymentSymbol = presale?.paymentTokenSymbol ?? '';
 
-  const handleApproveDeposit = () => {
-    if (!presale?.saleToken || !depositAmount || !presaleAddress) return;
-    const parsed = parseUnits(depositAmount, saleDecimals);
-    approveWrite({
+  const progress = useMemo(() => {
+    if (!presale?.hardCap || presale.hardCap === 0n) return 0;
+    return Number((presale.totalRaised * 100n) / presale.hardCap);
+  }, [presale?.hardCap, presale?.totalRaised]);
+
+  const hasSufficientAllowance = useMemo(() => {
+    if (!allowance || totalRequired === 0n) return false;
+    return allowance >= totalRequired;
+  }, [allowance, totalRequired]);
+
+  const hasDeposited = useMemo(() => {
+    if (!contractBalance || saleAmount === 0n) return false;
+    return contractBalance >= saleAmount;
+  }, [contractBalance, saleAmount]);
+
+  const presaleHasEnded = presale?.claimEnabled || presale?.refundsEnabled;
+
+  const handleApproveTokens = () => {
+    if (!presale?.saleToken || !presaleAddress) return;
+    if (totalRequired === 0n) {
+      toast.error('Unable to determine required token amount.');
+      return;
+    }
+    writeApprove({
       abi: erc20Abi,
       address: presale.saleToken,
       functionName: 'approve',
-      args: [presaleAddress, parsed],
+      args: [presaleAddress, totalRequired],
     });
   };
 
-  const handleDeposit = () => {
-    if (!presaleAddress || !depositAmount) return;
-    const parsed = parseUnits(depositAmount, saleDecimals);
-    depositSaleTokens(presaleAddress, parsed);
+  const handleDepositTokens = () => {
+    if (!presaleAddress) return;
+    if (saleAmount === 0n) {
+      toast.error('Unable to determine sale amount.');
+      return;
+    }
+    writeDeposit({
+      abi: LaunchpadPresaleContract,
+      address: presaleAddress,
+      functionName: 'depositSaleTokens',
+      args: [saleAmount],
+    });
+  };
+
+  const runOwnerAction = (action: string, config: Parameters<typeof writeOwnerAction>[0]) => {
+    setActiveOwnerAction(action);
+    writeOwnerAction(config);
   };
 
   const handleFinalize = () => {
     if (!presaleAddress) return;
-    finalize(presaleAddress);
+    runOwnerAction('finalize', {
+      abi: LaunchpadPresaleContract,
+      address: presaleAddress,
+      functionName: 'finalize',
+    });
   };
 
   const handleCancel = () => {
     if (!presaleAddress) return;
-    cancelPresale(presaleAddress);
+    runOwnerAction('cancel', {
+      abi: LaunchpadPresaleContract,
+      address: presaleAddress,
+      functionName: 'cancelPresale',
+    });
   };
 
   const handleWithdrawProceeds = () => {
     if (!presaleAddress) return;
-    const amount = withdrawAmount
-      ? parseUnits(withdrawAmount, paymentDecimals)
-      : 0n;
-    withdrawProceeds(presaleAddress, amount);
-  };
-
-  const handleWithdrawUnused = () => {
-    if (!presaleAddress) return;
-    withdrawUnusedTokens(presaleAddress, 0n);
-  };
-
-  const handleWhitelist = () => {
-    if (!presaleAddress || !whitelistAddresses.trim()) return;
-
-    const addresses = whitelistAddresses
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith('0x') && line.length === 42) as Address[];
-
-    if (addresses.length === 0) return;
-
-    const functionName = whitelistAction === 'add' ? 'addToWhitelist' : 'removeFromWhitelist';
-
-    whitelistWrite({
-      abi: PresaleContract,
+    if (!presale?.claimEnabled) {
+      toast.error('Finalize the presale before withdrawing proceeds.');
+      return;
+    }
+    runOwnerAction('withdrawProceeds', {
+      abi: LaunchpadPresaleContract,
       address: presaleAddress,
-      functionName,
-      args: [addresses],
+      functionName: 'withdrawProceeds',
+      args: [0n],
     });
   };
+
+  const handleWithdrawTokens = () => {
+    if (!presaleAddress) return;
+    if (!presale?.claimEnabled) {
+      toast.error('Finalize the presale before withdrawing unsold tokens.');
+      return;
+    }
+    runOwnerAction('withdrawTokens', {
+      abi: LaunchpadPresaleContract,
+      address: presaleAddress,
+      functionName: 'withdrawUnusedTokens',
+      args: [0n],
+    });
+  };
+
+  const runWhitelistAction = (action: string, config: Parameters<typeof writeWhitelist>[0]) => {
+    setActiveWhitelistAction(action);
+    writeWhitelist(config);
+  };
+
+  const handleAddSingle = () => {
+    if (!singleWhitelist || !isAddress(singleWhitelist)) {
+      toast.error('Enter a valid address to whitelist.');
+      return;
+    }
+    if (!presaleAddress) return;
+    runWhitelistAction('addOne', {
+      abi: PresaleContract,
+      address: presaleAddress,
+      functionName: 'addToWhitelist',
+      args: [singleWhitelist as Address],
+    });
+  };
+
+  const handleBulkWhitelist = () => {
+    if (!bulkWhitelist.trim()) {
+      toast.error('Paste one or more addresses.');
+      return;
+    }
+    const entries = bulkWhitelist
+      .split(/[\s,]+/)
+      .map((addr) => addr.trim())
+      .filter(Boolean);
+
+    if (entries.length === 0) return;
+    const invalid = entries.find((addr) => !isAddress(addr));
+    if (invalid) {
+      toast.error(`Invalid wallet: ${invalid}`);
+      return;
+    }
+    if (!presaleAddress) return;
+    runWhitelistAction('bulkAdd', {
+      abi: PresaleContract,
+      address: presaleAddress,
+      functionName: 'addManyToWhitelist',
+      args: [entries as Address[]],
+    });
+  };
+
+  const handleRemoveWhitelist = () => {
+    if (!removeWhitelist || !isAddress(removeWhitelist)) {
+      toast.error('Enter a valid address to remove.');
+      return;
+    }
+    if (!presaleAddress) return;
+    runWhitelistAction('remove', {
+      abi: PresaleContract,
+      address: presaleAddress,
+      functionName: 'removeFromWhitelist',
+      args: [removeWhitelist as Address],
+    });
+  };
+
+  if (!presaleAddress) {
+    return (
+      <div className="max-w-2xl mx-auto glass-card rounded-3xl p-8 text-center space-y-4">
+        <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
+        <h2 className="font-display text-display-md text-ink">Invalid Presale Address</h2>
+        <Link to="/presales" className="btn-primary inline-block">
+          Back to Presales
+        </Link>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -244,7 +478,7 @@ const ManagePresalePage: React.FC = () => {
     );
   }
 
-  const statusInfo = getStatusLabel(presale.status);
+  const statusInfo = getStatusLabel(presaleStatus);
 
   return (
     <motion.div
@@ -253,7 +487,6 @@ const ManagePresalePage: React.FC = () => {
       animate="visible"
       className="max-w-4xl mx-auto space-y-8"
     >
-      {/* Back Link */}
       <motion.div variants={itemVariants}>
         <Link
           to={`/presales/${presaleAddress}`}
@@ -264,23 +497,20 @@ const ManagePresalePage: React.FC = () => {
         </Link>
       </motion.div>
 
-      {/* Header */}
       <motion.section variants={itemVariants} className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-accent-muted text-accent flex items-center justify-center">
               <Settings className="w-5 h-5" />
             </div>
-            <h1 className="font-display text-display-lg text-ink">
-              Manage Presale
-            </h1>
+            <h1 className="font-display text-display-lg text-ink">Manage Presale</h1>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.color}`}>
             {statusInfo.text}
           </span>
         </div>
         <p className="text-body text-ink-muted">
-          {presale.saleTokenName || presale.saleTokenSymbol || 'Token'} Presale &mdash;{' '}
+          {presale.saleTokenName || saleTokenSymbol} Presale &mdash;{' '}
           <a
             href={`${explorerUrl}/address/${presaleAddress}`}
             target="_blank"
@@ -293,95 +523,117 @@ const ManagePresalePage: React.FC = () => {
         </p>
       </motion.section>
 
-      {/* Status & Progress */}
       <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
         <h2 className="font-display text-display-sm text-ink flex items-center gap-2">
           <Coins className="w-5 h-5 text-accent" />
           Sale Status
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="stat-card">
+          <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Total Raised</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.totalRaised ?? 0n, paymentDecimals)}{' '}
-              {presale.paymentTokenSymbol || ''}
+              {formatUnits(presale.totalRaised ?? 0n, paymentDecimals)} {paymentSymbol}
             </p>
           </div>
-          <div className="stat-card">
+          <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Hard Cap</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.hardCap ?? 0n, paymentDecimals)}{' '}
-              {presale.paymentTokenSymbol || ''}
+              {formatUnits(presale.hardCap ?? 0n, paymentDecimals)} {paymentSymbol}
             </p>
           </div>
-          <div className="stat-card">
+          <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Tokens Deposited</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.totalTokensDeposited ?? 0n, saleDecimals)}{' '}
-              {presale.saleTokenSymbol || ''}
+              {formatUnits(presale.totalTokensDeposited ?? 0n, saleTokenDecimals)} {saleTokenSymbol}
             </p>
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-body-sm">
             <span className="text-ink-muted">Progress</span>
-            <span className="text-ink font-medium">{presale.progress}%</span>
+            <span className="text-ink font-medium">{Math.min(progress, 100)}%</span>
           </div>
-          <div className="w-full h-3 bg-ink/5 rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-ink/10 rounded-full overflow-hidden">
             <div
               className="h-full bg-accent rounded-full transition-all duration-500"
-              style={{ width: `${presale.progress}%` }}
+              style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
         </div>
       </motion.section>
 
-      {/* Deposit Sale Tokens */}
       <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
         <h2 className="font-display text-display-sm text-ink flex items-center gap-2">
           <Upload className="w-5 h-5 text-accent" />
           Deposit Sale Tokens
         </h2>
         <p className="text-body-sm text-ink-muted">
-          Deposit {presale.saleTokenSymbol || 'sale'} tokens into the presale contract so
-          participants can claim after finalization.
+          Approve and deposit {saleTokenSymbol} tokens so contributors can claim after finalization.
         </p>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            placeholder="Amount to deposit"
-            className="input-field flex-1"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="stat-card p-4">
+            <p className="text-body-sm text-ink-muted">Sale Amount</p>
+            <p className="text-body font-semibold text-ink">
+              {formatUnits(saleAmount, saleTokenDecimals)} {saleTokenSymbol}
+            </p>
+          </div>
+          <div className="stat-card p-4">
+            <p className="text-body-sm text-ink-muted">Launchpad Fee (2%)</p>
+            <p className="text-body font-semibold text-ink">
+              {formatUnits(launchpadFee, saleTokenDecimals)} {saleTokenSymbol}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col md:flex-row gap-3">
           <button
-            onClick={handleApproveDeposit}
-            disabled={isApprovePending || isApproveConfirming || !depositAmount}
-            className="btn-secondary"
+            onClick={handleApproveTokens}
+            disabled={
+              isApprovePending ||
+              isApproveConfirming ||
+              totalRequired === 0n ||
+              hasSufficientAllowance ||
+              hasDeposited ||
+              presaleHasEnded
+            }
+            className="btn-secondary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isApprovePending || isApproveConfirming ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isApproveSuccess ? (
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Approving...
+              </span>
+            ) : hasSufficientAllowance || hasDeposited ? (
+              'Approved'
             ) : (
-              'Approve'
+              `Approve ${formatUnits(totalRequired, saleTokenDecimals)} ${saleTokenSymbol}`
             )}
           </button>
           <button
-            onClick={handleDeposit}
-            disabled={isOwnerPending || isOwnerConfirming || !depositAmount}
-            className="btn-primary"
+            onClick={handleDepositTokens}
+            disabled={
+              isDepositPending ||
+              isDepositConfirming ||
+              saleAmount === 0n ||
+              !hasSufficientAllowance ||
+              hasDeposited ||
+              presaleHasEnded
+            }
+            className="btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isOwnerPending || isOwnerConfirming ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+            {isDepositPending || isDepositConfirming ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Depositing...
+              </span>
+            ) : hasDeposited ? (
+              'Deposited'
             ) : (
-              'Deposit'
+              'Deposit Tokens'
             )}
           </button>
         </div>
       </motion.section>
 
-      {/* Finalize / Cancel / Withdraw */}
       <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
         <h2 className="font-display text-display-sm text-ink flex items-center gap-2">
           <Shield className="w-5 h-5 text-accent" />
@@ -400,7 +652,7 @@ const ManagePresalePage: React.FC = () => {
           <button
             onClick={handleCancel}
             disabled={isOwnerPending || isOwnerConfirming}
-            className="btn-secondary h-auto py-4 flex flex-col items-center gap-1 border-red-200 text-red-600 hover:bg-red-50"
+            className="btn-secondary h-auto py-4 flex flex-col items-center gap-1 border-status-error text-status-error hover:bg-status-error/10"
           >
             <Ban className="w-5 h-5" />
             <span className="font-medium">Cancel Presale</span>
@@ -408,30 +660,21 @@ const ManagePresalePage: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-ink/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-ink/10">
           <div className="space-y-3">
             <p className="text-body-sm font-medium text-ink">Withdraw Proceeds</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                placeholder="Amount (0 = all)"
-                className="input-field flex-1"
-              />
-              <button
-                onClick={handleWithdrawProceeds}
-                disabled={isOwnerPending || isOwnerConfirming}
-                className="btn-secondary"
-              >
-                Withdraw
-              </button>
-            </div>
+            <button
+              onClick={handleWithdrawProceeds}
+              disabled={isOwnerPending || isOwnerConfirming}
+              className="btn-secondary w-full"
+            >
+              Withdraw Proceeds
+            </button>
           </div>
           <div className="space-y-3">
             <p className="text-body-sm font-medium text-ink">Withdraw Unused Tokens</p>
             <button
-              onClick={handleWithdrawUnused}
+              onClick={handleWithdrawTokens}
               disabled={isOwnerPending || isOwnerConfirming}
               className="btn-secondary w-full"
             >
@@ -441,92 +684,65 @@ const ManagePresalePage: React.FC = () => {
         </div>
       </motion.section>
 
-      {/* Whitelist Management */}
       {presale.requiresWhitelist && (
-        <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
+        <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-5">
           <h2 className="font-display text-display-sm text-ink flex items-center gap-2">
             <Users className="w-5 h-5 text-accent" />
             Whitelist Management
           </h2>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setWhitelistAction('add')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                whitelistAction === 'add'
-                  ? 'bg-accent text-white'
-                  : 'bg-ink/5 text-ink-muted hover:bg-ink/10'
-              }`}
-            >
-              Add to Whitelist
-            </button>
-            <button
-              onClick={() => setWhitelistAction('remove')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                whitelistAction === 'remove'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-ink/5 text-ink-muted hover:bg-ink/10'
-              }`}
-            >
-              Remove from Whitelist
-            </button>
-          </div>
-
-          <textarea
-            value={whitelistAddresses}
-            onChange={(e) => setWhitelistAddresses(e.target.value)}
-            placeholder="Enter addresses, one per line:&#10;0x1234...&#10;0x5678..."
-            rows={5}
-            className="input-field w-full font-mono text-sm resize-y"
-          />
-
-          {whitelistError && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <p>{whitelistError.message?.slice(0, 200) || 'Transaction failed'}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-body-sm text-ink-muted">Add Single Wallet</label>
+              <input
+                value={singleWhitelist}
+                onChange={(event) => setSingleWhitelist(event.target.value)}
+                placeholder="0x..."
+                className="input-field font-mono"
+              />
+              <button
+                onClick={handleAddSingle}
+                disabled={isWhitelistPending || isWhitelistConfirming || !singleWhitelist}
+                className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Add Wallet
+              </button>
             </div>
-          )}
-
-          <button
-            onClick={handleWhitelist}
-            disabled={isWhitelistPending || isWhitelistConfirming || !whitelistAddresses.trim()}
-            className={`${
-              whitelistAction === 'add' ? 'btn-primary' : 'btn-secondary text-red-600 border-red-200 hover:bg-red-50'
-            } w-full`}
-          >
-            {isWhitelistPending || isWhitelistConfirming ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processing...
-              </span>
-            ) : whitelistAction === 'add' ? (
-              'Add Addresses'
-            ) : (
-              'Remove Addresses'
-            )}
-          </button>
+            <div className="space-y-2">
+              <label className="text-body-sm text-ink-muted">Bulk Add</label>
+              <textarea
+                value={bulkWhitelist}
+                onChange={(event) => setBulkWhitelist(event.target.value)}
+                placeholder="Paste addresses separated by commas or line breaks"
+                rows={5}
+                className="input-field w-full font-mono text-sm resize-y"
+              />
+              <button
+                onClick={handleBulkWhitelist}
+                disabled={isWhitelistPending || isWhitelistConfirming || !bulkWhitelist.trim()}
+                className="btn-secondary w-full disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Upload List
+              </button>
+            </div>
+            <div className="space-y-2">
+              <label className="text-body-sm text-ink-muted">Remove Wallet</label>
+              <input
+                value={removeWhitelist}
+                onChange={(event) => setRemoveWhitelist(event.target.value)}
+                placeholder="0x..."
+                className="input-field font-mono"
+              />
+              <button
+                onClick={handleRemoveWhitelist}
+                disabled={isWhitelistPending || isWhitelistConfirming || !removeWhitelist}
+                className="btn-secondary w-full text-status-error border-status-error hover:bg-status-error/10 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Remove Wallet
+              </button>
+            </div>
+          </div>
         </motion.section>
-      )}
-
-      {/* Success / Error Messages */}
-      {lastAction && (
-        <motion.div
-          variants={itemVariants}
-          className="flex items-center gap-2 p-3 rounded-xl bg-green-50 text-green-700 text-sm"
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{lastAction}</span>
-        </motion.div>
-      )}
-
-      {ownerError && (
-        <motion.div
-          variants={itemVariants}
-          className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm"
-        >
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <p>{ownerError.message?.slice(0, 200) || 'Action failed'}</p>
-        </motion.div>
       )}
     </motion.div>
   );

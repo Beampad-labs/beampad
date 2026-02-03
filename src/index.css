@@ -22,8 +22,18 @@
     font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   }
 
+  :root {
+    --brand-gradient: linear-gradient(
+      135deg,
+      #8b9bf9 0%,
+      #8bb7f9 38%,
+      #8fdcc4 70%,
+      #f3deb0 100%
+    );
+  }
+
   ::selection {
-    background: rgba(79, 70, 229, 0.25);
+    background: rgba(139, 155, 249, 0.25);
   }
 
   /* Refined scrollbar */
@@ -37,27 +47,27 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(79, 70, 229, 0.3);
+    background: rgba(139, 155, 249, 0.35);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(79, 70, 229, 0.45);
+    background: rgba(139, 155, 249, 0.5);
   }
 }
 
 @layer components {
   /* Premium glass card effect */
   .glass-card {
-    background: rgba(249, 250, 251, 0.75);
+    background: rgba(18, 24, 38, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(229, 231, 235, 0.12);
+    border: 1px solid rgba(31, 41, 55, 0.6);
   }
 
   /* Subtle gradient text */
   .text-gradient {
-    background: linear-gradient(135deg, #111827 0%, #4B5563 100%);
+    background: linear-gradient(135deg, #F8FAFC 0%, #9AA4B2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -65,7 +75,14 @@
 
   /* Vibrant accent gradient */
   .text-accent-gradient {
-    background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%);
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .brand-gradient-text {
+    background: var(--brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -93,7 +110,7 @@
 
   /* Refined button styles */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 bg-ink text-canvas font-medium text-body-sm rounded-full;
+    @apply inline-flex items-center justify-center px-6 py-3 bg-accent text-canvas font-medium text-body-sm rounded-full;
     @apply transition-all duration-500;
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -130,7 +147,7 @@
 
   /* Stat card styling */
   .stat-card {
-    @apply relative overflow-hidden rounded-3xl p-8 bg-white border border-border;
+    @apply relative overflow-hidden rounded-3xl p-8 bg-canvas-alt border border-border;
     @apply transition-all duration-500;
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -157,7 +174,7 @@
 
   /* Project card styling */
   .project-card {
-    @apply relative overflow-hidden rounded-3xl bg-white border border-border;
+    @apply relative overflow-hidden rounded-3xl bg-canvas-alt border border-border;
     @apply transition-all duration-500;
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -212,7 +229,7 @@
   }
 
   .input-field:focus {
-    @apply outline-none border-border-strong bg-white;
+    @apply outline-none border-border-strong bg-canvas;
   }
 
   /* Divider */
@@ -234,8 +251,8 @@
 
 /* RainbowKit customization for vibrant look */
 [data-rk] {
-  --rk-colors-accentColor: #4F46E5 !important;
-  --rk-colors-accentColorForeground: #111827 !important;
+  --rk-colors-accentColor: #8B9BF9 !important;
+  --rk-colors-accentColorForeground: #0B0D12 !important;
   --rk-radii-connectButton: 9999px !important;
   --rk-fonts-body: 'DM Sans', system-ui, sans-serif !important;
 }

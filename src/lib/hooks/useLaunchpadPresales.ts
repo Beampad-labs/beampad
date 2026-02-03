@@ -85,7 +85,9 @@ export function useLaunchpadPresales(filter: LaunchpadPresaleFilter = 'all', for
   }, [presaleFactory]);
 
   const cachedAddresses = getPresaleAddresses();
-  const shouldFetchAddresses = Boolean(presaleFactory);
+  const shouldFetchAddresses = Boolean(
+    presaleFactory && presaleFactory !== "0x0000000000000000000000000000000000000000"
+  );
 
   // Fetch total number of presales
   const { data: totalPresales, isLoading: isLoadingTotal, refetch: refetchTotal } = useReadContract({

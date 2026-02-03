@@ -4,12 +4,14 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { Menu, X } from 'lucide-react';
+import { OWNER } from '@/config';
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const isOwner = Boolean(address && address.toLowerCase() === OWNER.toLowerCase());
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,55 +27,45 @@ const Header: React.FC = () => {
   }, [location.pathname]);
 
   const publicNavItems = [
-    { path: '/presales', label: 'IDOs' },
+    { path: '/presales', label: 'Launchpad' },
   ];
 
   const privateNavItems = [
     { path: '/dashboard', label: 'Dashboard' },
-    { path: '/presales', label: 'IDOs' },
+    { path: '/presales', label: 'Launchpad' },
     { path: '/tools', label: 'Tools' },
     { path: '/staking', label: 'Staking' },
   ];
 
-  const navItems = isConnected ? privateNavItems : publicNavItems;
+  const navItems = isConnected
+    ? [
+        ...privateNavItems,
+        ...(isOwner ? [{ path: '/admin', label: 'Admin' }] : []),
+      ]
+    : publicNavItems;
 
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className={`sticky top-0 z-50 transition-all duration-500 ease-expo-out ${
+      className={`sticky top-0 z-50 py-5 border-b border-transparent transition-colors duration-300 ${
         scrolled
-          ? 'py-4 bg-canvas/80 backdrop-blur-xl border-b border-border'
-          : 'py-6 bg-transparent'
+          ? 'bg-canvas/80 backdrop-blur-xl border-border'
+          : 'bg-transparent'
       }`}
     >
       <nav className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
         {/* Logo */}
-        <Link to={isConnected ? '/dashboard' : '/'} className="group flex items-center gap-3">
+        <Link to="/" className="group flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center">
-            <svg
-              viewBox="0 0 40 40"
-              fill="none"
+            <img
+              src="/beampad-logo.jpg"
+              alt="BeamPad"
               className="w-full h-full transition-transform duration-500 ease-expo-out group-hover:scale-110"
-            >
-              <rect
-                x="4"
-                y="4"
-                width="32"
-                height="32"
-                rx="8"
-                className="fill-ink"
-              />
-              <path
-                d="M14 26L20 14L26 26H14Z"
-                className="fill-canvas"
-                strokeLinejoin="round"
-              />
-              <circle cx="20" cy="22" r="2" className="fill-accent" />
-            </svg>
+            />
           </div>
-          <span className="font-display text-display-sm text-ink">
+          <span className="font-display text-display-sm brand-gradient-text">
             BeamPad
           </span>
         </Link>
