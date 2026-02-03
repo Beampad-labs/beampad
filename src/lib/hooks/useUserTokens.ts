@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useAccount, useReadContract } from 'wagmi';
+import { useEffect, useMemo } from 'react';
+import { useAccount, useChainId, useReadContract } from 'wagmi';
 import type { Address } from 'viem';
 import { TokenFactory } from '@/config';
 import { useChainContracts } from '@/lib/hooks/useChainContracts';
@@ -9,15 +9,18 @@ const AUTO_REFRESH_INTERVAL = 10000;
 
 export function useUserTokens(forceRefetch = false) {
   const { address } = useAccount();
+  const chainId = useChainId();
   const { tokenFactory } = useChainContracts();
 
   const {
     getUserTokens,
     setUserTokens,
     setUserTokensLoading,
+    getImportedTokens,
   } = useBlockchainStore();
 
   const cachedTokens = address ? getUserTokens(address) : null;
+  const importedTokens = address ? getImportedTokens(address, chainId) : [];
   const shouldFetch = Boolean(address && tokenFactory && tokenFactory !== '0x0000000000000000000000000000000000000000');
 
   const { data: tokens, isLoading, refetch } = useReadContract({
@@ -61,15 +64,38 @@ export function useUserTokens(forceRefetch = false) {
   };
 
   const contractTokens = tokens as unknown as Address[] | undefined;
-  const resolvedTokens = contractTokens && contractTokens.length > 0
+  const factoryTokens = contractTokens && contractTokens.length > 0
     ? contractTokens
     : cachedTokens && cachedTokens.length > 0
     ? cachedTokens
     : contractTokens ?? cachedTokens ?? [];
 
+  // Merge factory-created and imported tokens, deduplicating by lowercase address
+  const allTokens = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: Address[] = [];
+    for (const t of factoryTokens) {
+      const lower = t.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        merged.push(t);
+      }
+    }
+    for (const t of importedTokens) {
+      const lower = t.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        merged.push(t);
+      }
+    }
+    return merged;
+  }, [factoryTokens, importedTokens]);
+
   return {
-    tokens: resolvedTokens,
-    isLoading: address ? (isLoading && resolvedTokens.length === 0) : false,
+    tokens: allTokens,
+    factoryTokens,
+    importedTokens,
+    isLoading: address ? (isLoading && allTokens.length === 0) : false,
     refetch: handleRefetch,
   };
 }

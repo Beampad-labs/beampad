@@ -20,11 +20,14 @@ interface CacheMetadata {
 }
 
 interface BlockchainStore {
-  // User Tokens Cache
+  // User Tokens Cache (factory-created)
   userTokens: Record<string, {
     tokens: Address[];
     metadata: CacheMetadata;
   }>;
+
+  // User Imported Tokens (manually added by user, keyed by chainId:address)
+  importedTokens: Record<string, Address[]>;
 
   // User Locks Cache
   userLocks: Record<string, {
@@ -44,6 +47,11 @@ interface BlockchainStore {
   setUserTokensLoading: (address: string, isLoading: boolean) => void;
   getUserTokens: (address: string) => Address[] | null;
   isUserTokensStale: (address: string, maxAge?: number) => boolean;
+
+  // Actions for Imported Tokens
+  addImportedToken: (userAddress: string, chainId: number, tokenAddress: Address) => void;
+  removeImportedToken: (userAddress: string, chainId: number, tokenAddress: Address) => void;
+  getImportedTokens: (userAddress: string, chainId: number) => Address[];
 
   // Actions for User Locks
   setUserLocks: (address: string, lockIds: bigint[]) => void;
@@ -72,6 +80,7 @@ export const useBlockchainStore = create<BlockchainStore>()(
     (set, get) => ({
       // Initial state
       userTokens: {},
+      importedTokens: {},
       userLocks: {},
       presales: {
         addresses: [],
@@ -113,6 +122,41 @@ export const useBlockchainStore = create<BlockchainStore>()(
         const cached = get().userTokens[address.toLowerCase()];
         if (!cached) return true;
         return Date.now() - cached.metadata.timestamp > maxAge;
+      },
+
+      // Imported Tokens Actions
+      addImportedToken: (userAddress, chainId, tokenAddress) =>
+        set((state) => {
+          const key = `${chainId}:${userAddress.toLowerCase()}`;
+          const existing = state.importedTokens[key] || [];
+          if (existing.some((t) => t.toLowerCase() === tokenAddress.toLowerCase())) {
+            return state; // already imported
+          }
+          return {
+            importedTokens: {
+              ...state.importedTokens,
+              [key]: [...existing, tokenAddress],
+            },
+          };
+        }),
+
+      removeImportedToken: (userAddress, chainId, tokenAddress) =>
+        set((state) => {
+          const key = `${chainId}:${userAddress.toLowerCase()}`;
+          const existing = state.importedTokens[key] || [];
+          return {
+            importedTokens: {
+              ...state.importedTokens,
+              [key]: existing.filter(
+                (t) => t.toLowerCase() !== tokenAddress.toLowerCase()
+              ),
+            },
+          };
+        }),
+
+      getImportedTokens: (userAddress, chainId) => {
+        const key = `${chainId}:${userAddress.toLowerCase()}`;
+        return get().importedTokens[key] || [];
       },
 
       // User Locks Actions
@@ -227,6 +271,7 @@ export const useBlockchainStore = create<BlockchainStore>()(
       clearCache: () =>
         set({
           userTokens: {},
+          importedTokens: {},
           userLocks: {},
           presales: {
             addresses: [],
@@ -279,6 +324,7 @@ export const useBlockchainStore = create<BlockchainStore>()(
             { ...value, metadata: { ...value.metadata, isLoading: false } },
           ])
         ),
+        importedTokens: state.importedTokens,
         userLocks: Object.fromEntries(
           Object.entries(state.userLocks).map(([key, value]) => [
             key,
