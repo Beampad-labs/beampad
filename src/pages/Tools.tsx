@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Lock, Sliders, ArrowRight, ArrowLeft } from 'lucide-react';
-import CreateTokenForm from '../components/tools/CreateTokenForm';
-import CreateTokenLockForm from '../components/tools/CreateTokenLockForm';
-import CreateTokenPresaleForm from '../components/tools/CreateTokenPresaleForm';
+import { DollarSign, Lock, Sliders, Send, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,82 +38,50 @@ const cardVariants = {
   },
 };
 
+const tools = [
+  {
+    id: 'createToken',
+    title: 'Create a Token',
+    description: 'Deploy a standard, mintable, burnable, or taxable ERC20 token.',
+    icon: DollarSign,
+    href: '/create/token',
+    bgColor: 'bg-ink',
+    textColor: 'text-canvas',
+    iconBg: 'bg-white/20',
+  },
+  {
+    id: 'createPresale',
+    title: 'Create a Presale',
+    description: 'Launch a presale for your token to raise funds from the community.',
+    icon: Sliders,
+    href: '/create/presale',
+    bgColor: 'bg-white',
+    textColor: 'text-ink',
+    iconBg: 'bg-ink/5',
+  },
+  {
+    id: 'tokenLocker',
+    title: 'Token Locker',
+    description: 'Lock token liquidity to build trust with your community.',
+    icon: Lock,
+    href: '/tools/token-locker',
+    bgColor: 'bg-white',
+    textColor: 'text-ink',
+    iconBg: 'bg-ink/5',
+  },
+  {
+    id: 'airdrop',
+    title: 'Airdrop / Multi-Send',
+    description: 'Send tokens or native currency to multiple addresses at once.',
+    icon: Send,
+    href: '/tools/airdrop',
+    bgColor: 'bg-white',
+    textColor: 'text-ink',
+    iconBg: 'bg-ink/5',
+  },
+];
+
 const Tools: React.FC = () => {
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
-
-  const tools = [
-    {
-      id: 'createToken',
-      title: 'Create a new Token',
-      description: 'Deploy a standard, mintable, or taxable ERC20 token.',
-      icon: DollarSign,
-      bgColor: 'bg-ink',
-      textColor: 'text-canvas',
-      iconBg: 'bg-white/20',
-    },
-    {
-      id: 'createLock',
-      title: 'Create a Lock',
-      description: 'Lock your token liquidity to build trust with your community.',
-      icon: Lock,
-      bgColor: 'bg-white',
-      textColor: 'text-ink',
-      iconBg: 'bg-ink/5',
-    },
-    {
-      id: 'createPresale',
-      title: 'Create a Presale',
-      description: 'Launch a presale for your token to raise funds.',
-      icon: Sliders,
-      bgColor: 'bg-white',
-      textColor: 'text-ink',
-      iconBg: 'bg-ink/5',
-    },
-  ];
-
-  const renderForm = () => {
-    switch (selectedTool) {
-      case 'createToken':
-        return <CreateTokenForm />;
-      case 'createLock':
-        return <CreateTokenLockForm />;
-      case 'createPresale':
-        return <CreateTokenPresaleForm />;
-      default:
-        return null;
-    }
-  };
-
-  if (selectedTool) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-8"
-      >
-        {/* Back Button */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={() => setSelectedTool(null)}
-          className="flex items-center gap-2 text-body text-ink-muted hover:text-ink transition-colors duration-300"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to tools</span>
-        </motion.button>
-
-        {/* Form Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-border p-6 md:p-8"
-        >
-          {renderForm()}
-        </motion.div>
-      </motion.div>
-    );
-  }
-
   return (
     <motion.div
       variants={containerVariants}
@@ -126,43 +92,38 @@ const Tools: React.FC = () => {
       {/* Header */}
       <motion.section variants={itemVariants} className="space-y-2">
         <h1 className="font-display text-display-lg text-ink">
-          Create
+          Create & Manage
         </h1>
+        <p className="text-body-lg text-ink-muted max-w-2xl">
+          Tools to launch tokens, create presales, lock liquidity, and distribute tokens.
+        </p>
       </motion.section>
 
-      {/* Assets Section */}
+      {/* Tools Grid */}
       <motion.section variants={itemVariants} className="space-y-6">
-        <h2 className="font-display text-display-md text-ink">
-          Assets
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {tools.map((tool) => {
             const IconComponent = tool.icon;
             return (
-              <motion.button
-                key={tool.id}
-                variants={cardVariants}
-                onClick={() => setSelectedTool(tool.id)}
-                className={`${tool.bgColor} ${tool.textColor} rounded-3xl border border-border p-6 md:p-8 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1`}
-              >
-                {/* Icon */}
-                <div className={`${tool.iconBg} w-12 h-12 rounded-full flex items-center justify-center mb-4`}>
-                  <IconComponent className="w-6 h-6" />
-                </div>
-
-                {/* Content */}
-                <h3 className="font-display text-display-sm font-semibold mb-2">
-                  {tool.title}
-                </h3>
-                <p className="text-body-sm opacity-80 mb-6">
-                  {tool.description}
-                </p>
-
-                {/* Arrow */}
-                <div className="absolute bottom-6 right-6">
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                </div>
-              </motion.button>
+              <motion.div key={tool.id} variants={cardVariants}>
+                <Link
+                  to={tool.href}
+                  className={`${tool.bgColor} ${tool.textColor} rounded-3xl border border-border p-6 md:p-8 text-left relative overflow-hidden group transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 block`}
+                >
+                  <div className={`${tool.iconBg} w-12 h-12 rounded-full flex items-center justify-center mb-4`}>
+                    <IconComponent className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-display text-display-sm font-semibold mb-2">
+                    {tool.title}
+                  </h3>
+                  <p className="text-body-sm opacity-80 mb-6">
+                    {tool.description}
+                  </p>
+                  <div className="absolute bottom-6 right-6">
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </div>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
@@ -172,4 +133,3 @@ const Tools: React.FC = () => {
 };
 
 export default Tools;
-

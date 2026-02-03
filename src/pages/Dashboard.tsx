@@ -207,21 +207,21 @@ const Dashboard: React.FC = () => {
               <div className="w-12 h-12 rounded-full bg-canvas-alt flex items-center justify-center mb-3"><Package className="w-5 h-5 text-ink-muted" /></div>
               <h3 className="font-display text-body text-ink mb-1">Created Tokens</h3>
               <p className="text-body-sm text-ink-muted mb-4">You haven't created any tokens yet.</p>
-              <Link to="/tools" className="btn-secondary btn-sm">Create Token</Link>
+              <Link to="/create/token" className="btn-secondary btn-sm">Create Token</Link>
             </div>
             {/* Created Presales */}
             <div className="bg-white rounded-2xl border border-border p-5 text-center flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-canvas-alt flex items-center justify-center mb-3"><Plus className="w-5 h-5 text-ink-muted" /></div>
               <h3 className="font-display text-body text-ink mb-1">Created Presales</h3>
               <p className="text-body-sm text-ink-muted mb-4">You haven't created any presales yet.</p>
-              <Link to="/tools" className="btn-secondary btn-sm">Create Presale</Link>
+              <Link to="/create/presale" className="btn-secondary btn-sm">Create Presale</Link>
             </div>
             {/* Token Locks */}
             <div className="bg-white rounded-2xl border border-border p-5 text-center flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-canvas-alt flex items-center justify-center mb-3"><Lock className="w-5 h-5 text-ink-muted" /></div>
               <h3 className="font-display text-body text-ink mb-1">Token Locks</h3>
               <p className="text-body-sm text-ink-muted mb-4">You haven't locked any tokens yet.</p>
-              <Link to="/tools" className="btn-secondary btn-sm">Create Lock</Link>
+              <Link to="/tools/token-locker" className="btn-secondary btn-sm">Create Lock</Link>
             </div>
           </div>
         ) : (

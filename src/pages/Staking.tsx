@@ -1,140 +1,292 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, TrendingUp, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, Zap, Loader2 } from 'lucide-react';
+import { useAccount, useChainId, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { formatUnits, parseUnits, maxUint256 } from 'viem';
+import { StakingContract, erc20Abi, getStakingContractAddress, getNativeTokenLabel } from '@/config';
+import { toast } from 'sonner';
+import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
 
 const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.1,
-        },
-    },
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
 };
 
 const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.6,
-            ease: [0.16, 1, 0.3, 1] as const,
-        },
-    },
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
+  },
 };
 
 const Staking: React.FC = () => {
-    const [stakeAmount, setStakeAmount] = useState('');
+  const [activeTab, setActiveTab] = useState<'stake' | 'unstake'>('stake');
+  const [amount, setAmount] = useState('');
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const stakingAddress = getStakingContractAddress(chainId);
+  const tokenLabel = getNativeTokenLabel(chainId);
 
-    // Mock data
-    const beamBalance = '10,000';
-    const stakedAmount = '5,000';
-    // const apy = '12.5%';
-    const rewards = '125.50';
+  // Read staking token address
+  const { data: stakingTokenData } = useReadContracts({
+    contracts: [
+      { address: stakingAddress, abi: StakingContract, functionName: 'stakingToken' },
+    ],
+    query: { enabled: !!stakingAddress && stakingAddress !== '0x0000000000000000000000000000000000000000' },
+  });
 
-    return (
-        <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-12"
-        >
-            {/* Header */}
-            <motion.section variants={itemVariants} className="space-y-1">
-                <h1 className="font-display text-display-lg text-ink">
-                    Stake BEAM
-                </h1>
-            </motion.section>
+  const stakingToken = stakingTokenData?.[0]?.result as `0x${string}` | undefined;
 
-            {/* Staking Stats */}
-            <motion.section variants={itemVariants}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="stat-card">
-                        <div className="flex items-start justify-between mb-6">
-                            <span className="text-label text-ink-faint uppercase">
-                                Your BEAM Balance
-                            </span>
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-canvas-alt text-ink-muted">
-                                <Wallet className="w-5 h-5" />
-                            </div>
-                        </div>
-                        <p className="font-display text-display-lg text-ink">
-                            {beamBalance}
-                        </p>
-                    </div>
-                    <div className="stat-card">
-                        <div className="flex items-start justify-between mb-6">
-                            <span className="text-label text-ink-faint uppercase">
-                                Staked BEAM
-                            </span>
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-canvas-alt text-ink-muted">
-                                <Zap className="w-5 h-5" />
-                            </div>
-                        </div>
-                        <p className="font-display text-display-lg text-ink">
-                            {stakedAmount}
-                        </p>
-                    </div>
-                    <div className="stat-card">
-                        <div className="flex items-start justify-between mb-6">
-                            <span className="text-label text-ink-faint uppercase">
-                                Rewards Earned
-                            </span>
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-accent-muted text-accent">
-                                <TrendingUp className="w-5 h-5" />
-                            </div>
-                        </div>
-                        <p className="font-display text-display-lg text-accent-gradient">
-                            {rewards}
-                        </p>
-                    </div>
+  // Read balances
+  const { data: balanceData, refetch: refetchBalances } = useReadContracts({
+    contracts: [
+      ...(stakingToken ? [
+        { address: stakingToken, abi: erc20Abi, functionName: 'balanceOf', args: [address!] },
+        { address: stakingToken, abi: erc20Abi, functionName: 'allowance', args: [address!, stakingAddress] },
+        { address: stakingToken, abi: erc20Abi, functionName: 'symbol' },
+      ] : []),
+      { address: stakingAddress, abi: StakingContract, functionName: 'stakedBalanceOf', args: [address!] },
+      { address: stakingAddress, abi: StakingContract, functionName: 'pendingReward', args: [address!] },
+    ] as any[],
+    query: { enabled: !!address && !!stakingToken },
+  });
+
+  const walletBalance = stakingToken && balanceData?.[0]?.result ? balanceData[0].result as bigint : 0n;
+  const allowance = stakingToken && balanceData?.[1]?.result ? balanceData[1].result as bigint : 0n;
+  const tokenSymbol = stakingToken && balanceData?.[2]?.result ? balanceData[2].result as string : tokenLabel;
+  const stakedBalance = balanceData?.[stakingToken ? 3 : 0]?.result as bigint ?? 0n;
+  const pendingReward = balanceData?.[stakingToken ? 4 : 1]?.result as bigint ?? 0n;
+
+  const needsApproval = amount && allowance < parseUnits(amount || '0', 18);
+
+  // Write contract
+  const { data: hash, writeContract, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success('Transaction confirmed!');
+      setAmount('');
+      reset();
+      refetchBalances();
+    }
+  }, [isSuccess, reset, refetchBalances]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(getFriendlyTxErrorMessage(error));
+      reset();
+    }
+  }, [error, reset]);
+
+  const handleApprove = () => {
+    if (!stakingToken) return;
+    writeContract({
+      address: stakingToken,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [stakingAddress, maxUint256],
+    });
+  };
+
+  const handleStake = () => {
+    if (!amount) return;
+    writeContract({
+      address: stakingAddress,
+      abi: StakingContract,
+      functionName: 'stake',
+      args: [parseUnits(amount, 18)],
+    });
+  };
+
+  const handleUnstake = () => {
+    if (!amount) return;
+    writeContract({
+      address: stakingAddress,
+      abi: StakingContract,
+      functionName: 'withdraw',
+      args: [parseUnits(amount, 18)],
+    });
+  };
+
+  const handleClaim = () => {
+    writeContract({
+      address: stakingAddress,
+      abi: StakingContract,
+      functionName: 'getReward',
+    });
+  };
+
+  const isLoading = isPending || isConfirming;
+  const isZeroAddress = stakingAddress === '0x0000000000000000000000000000000000000000';
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-12"
+    >
+      <motion.section variants={itemVariants} className="space-y-1">
+        <h1 className="font-display text-display-lg text-ink">Stake {tokenLabel}</h1>
+        <p className="text-body-lg text-ink-muted">Stake your tokens to earn rewards and unlock IDO allocations.</p>
+      </motion.section>
+
+      {isZeroAddress ? (
+        <motion.section variants={itemVariants}>
+          <div className="bg-white rounded-3xl border border-border p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-canvas-alt flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-6 h-6 text-ink-muted" />
+            </div>
+            <h3 className="font-display text-display-sm text-ink mb-2">Staking Coming Soon</h3>
+            <p className="text-body text-ink-muted max-w-md mx-auto">
+              Staking contracts are being deployed on this network. Check back soon.
+            </p>
+          </div>
+        </motion.section>
+      ) : (
+        <>
+          {/* Stats */}
+          <motion.section variants={itemVariants}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="stat-card">
+                <div className="flex items-start justify-between mb-6">
+                  <span className="text-label text-ink-faint uppercase">Wallet Balance</span>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-canvas-alt text-ink-muted">
+                    <Wallet className="w-5 h-5" />
+                  </div>
                 </div>
-            </motion.section>
-
-            {/* Staking Form */}
-            <motion.section variants={itemVariants}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Stake */}
-                    <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
-                        <h2 className="font-display text-display-sm text-ink">Stake BEAM</h2>
-                        <div className="space-y-2">
-                            <label className="text-label text-ink-faint uppercase">
-                                Amount to Stake
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={stakeAmount}
-                                    onChange={(e) => setStakeAmount(e.target.value)}
-                                    placeholder="0.00"
-                                    className="input-field font-mono pr-20"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-body-sm text-ink-muted">
-                                    BEAM
-                                </span>
-                            </div>
-                        </div>
-                        <button className="btn-primary w-full">
-                            Stake
-                        </button>
-                    </div>
-
-                    {/* Unstake */}
-                    <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
-                        <h2 className="font-display text-display-sm text-ink">Unstake BEAM</h2>
-                        <p className="text-body text-ink-muted">
-                            You have {stakedAmount} BEAM staked.
-                        </p>
-                        <button className="btn-secondary w-full">
-                            Withdraw All
-                        </button>
-                    </div>
+                <p className="font-display text-display-md text-ink font-mono">
+                  {isConnected ? formatUnits(walletBalance, 18) : '—'}
+                </p>
+                <p className="text-body-sm text-ink-faint mt-1">{tokenSymbol}</p>
+              </div>
+              <div className="stat-card">
+                <div className="flex items-start justify-between mb-6">
+                  <span className="text-label text-ink-faint uppercase">Staked</span>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-canvas-alt text-ink-muted">
+                    <Zap className="w-5 h-5" />
+                  </div>
                 </div>
-            </motion.section>
-        </motion.div>
-    );
+                <p className="font-display text-display-md text-ink font-mono">
+                  {isConnected ? formatUnits(stakedBalance, 18) : '—'}
+                </p>
+                <p className="text-body-sm text-ink-faint mt-1">{tokenSymbol}</p>
+              </div>
+              <div className="stat-card">
+                <div className="flex items-start justify-between mb-6">
+                  <span className="text-label text-ink-faint uppercase">Pending Rewards</span>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-accent-muted text-accent">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+                <p className="font-display text-display-md text-accent-gradient font-mono">
+                  {isConnected ? formatUnits(pendingReward, 18) : '—'}
+                </p>
+                <p className="text-body-sm text-ink-faint mt-1">{tokenSymbol}</p>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Staking Form */}
+          <motion.section variants={itemVariants}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+                {/* Tabs */}
+                <div className="flex gap-2 p-1 bg-canvas-alt rounded-xl">
+                  <button
+                    onClick={() => { setActiveTab('stake'); setAmount(''); }}
+                    className={`flex-1 py-2.5 rounded-lg text-body-sm font-medium transition-all duration-300 ${
+                      activeTab === 'stake' ? 'bg-white text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    Stake
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('unstake'); setAmount(''); }}
+                    className={`flex-1 py-2.5 rounded-lg text-body-sm font-medium transition-all duration-300 ${
+                      activeTab === 'unstake' ? 'bg-white text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    Unstake
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-label text-ink-faint uppercase">
+                      Amount to {activeTab === 'stake' ? 'Stake' : 'Unstake'}
+                    </label>
+                    <button
+                      onClick={() => setAmount(
+                        formatUnits(activeTab === 'stake' ? walletBalance : stakedBalance, 18)
+                      )}
+                      className="text-label text-accent hover:text-accent-hover transition-colors"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="input-field font-mono pr-20"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-body-sm text-ink-muted">
+                      {tokenSymbol}
+                    </span>
+                  </div>
+                </div>
+
+                {activeTab === 'stake' && needsApproval ? (
+                  <button onClick={handleApprove} disabled={isLoading} className="btn-secondary w-full">
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Approve {tokenSymbol}
+                  </button>
+                ) : (
+                  <button
+                    onClick={activeTab === 'stake' ? handleStake : handleUnstake}
+                    disabled={isLoading || !amount}
+                    className="btn-primary w-full"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {activeTab === 'stake' ? 'Stake' : 'Unstake'}
+                  </button>
+                )}
+              </div>
+
+              {/* Claim Rewards */}
+              <div className="bg-white rounded-3xl border border-border p-8 space-y-6">
+                <h2 className="font-display text-display-sm text-ink">Claim Rewards</h2>
+                <p className="text-body text-ink-muted">
+                  You have{' '}
+                  <span className="font-mono font-medium text-ink">
+                    {formatUnits(pendingReward, 18)}
+                  </span>{' '}
+                  {tokenSymbol} in pending rewards.
+                </p>
+                <button
+                  onClick={handleClaim}
+                  disabled={isLoading || pendingReward === 0n}
+                  className="btn-primary w-full"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Claim Rewards
+                </button>
+              </div>
+            </div>
+          </motion.section>
+        </>
+      )}
+    </motion.div>
+  );
 };
 
 export default Staking;

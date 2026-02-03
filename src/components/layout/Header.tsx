@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
+import { Menu, X } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isConnected } = useAccount();
 
@@ -17,13 +19,23 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = isConnected
-    ? [
-        { path: '/dashboard', label: 'Dashboard' },
-        { path: '/tools', label: 'Tools' },
-        { path: '/staking', label: 'Staking' },
-      ]
-    : [];
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const publicNavItems = [
+    { path: '/presales', label: 'IDOs' },
+  ];
+
+  const privateNavItems = [
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/presales', label: 'IDOs' },
+    { path: '/tools', label: 'Tools' },
+    { path: '/staking', label: 'Staking' },
+  ];
+
+  const navItems = isConnected ? privateNavItems : publicNavItems;
 
   return (
     <motion.header
@@ -40,7 +52,6 @@ const Header: React.FC = () => {
         {/* Logo */}
         <Link to={isConnected ? '/dashboard' : '/'} className="group flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center">
-            {/* Geometric logo mark */}
             <svg
               viewBox="0 0 40 40"
               fill="none"
@@ -67,7 +78,7 @@ const Header: React.FC = () => {
           </span>
         </Link>
 
-        {/* Navigation */}
+        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
             <Link
@@ -77,7 +88,7 @@ const Header: React.FC = () => {
             >
               <span
                 className={`relative z-10 ${
-                  location.pathname === item.path
+                  location.pathname === item.path || location.pathname.startsWith(item.path + '/')
                     ? 'text-ink'
                     : 'text-ink-muted hover:text-ink'
                 }`}
@@ -85,7 +96,7 @@ const Header: React.FC = () => {
                 {item.label}
               </span>
               <AnimatePresence>
-                {location.pathname === item.path && (
+                {(location.pathname === item.path || location.pathname.startsWith(item.path + '/')) && (
                   <motion.div
                     layoutId="nav-indicator"
                     initial={{ opacity: 0 }}
@@ -100,8 +111,8 @@ const Header: React.FC = () => {
           ))}
         </div>
 
-        {/* Connect Button */}
-        <div className="flex items-center gap-4">
+        {/* Right side: Connect + Mobile menu button */}
+        <div className="flex items-center gap-3">
           <ConnectButton.Custom>
             {({
               account,
@@ -161,6 +172,7 @@ const Header: React.FC = () => {
                               className="w-4 h-4 rounded-full"
                             />
                           )}
+                          <span className="hidden sm:inline text-body-sm">{chain.name}</span>
                         </button>
 
                         <button
@@ -178,8 +190,46 @@ const Header: React.FC = () => {
               );
             }}
           </ConnectButton.Custom>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden btn-ghost p-2"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="md:hidden overflow-hidden border-b border-border bg-canvas/95 backdrop-blur-xl"
+          >
+            <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`block px-4 py-3 rounded-xl text-body font-medium transition-colors duration-200 ${
+                    location.pathname === item.path
+                      ? 'bg-canvas-alt text-ink'
+                      : 'text-ink-muted hover:text-ink hover:bg-canvas-alt/50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 };
