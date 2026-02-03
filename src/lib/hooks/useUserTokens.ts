@@ -60,9 +60,16 @@ export function useUserTokens(forceRefetch = false) {
     }
   };
 
+  const contractTokens = tokens as unknown as Address[] | undefined;
+  const resolvedTokens = contractTokens && contractTokens.length > 0
+    ? contractTokens
+    : cachedTokens && cachedTokens.length > 0
+    ? cachedTokens
+    : contractTokens ?? cachedTokens ?? [];
+
   return {
-    tokens: cachedTokens || (tokens as unknown as Address[]) || [],
-    isLoading: address ? isLoading : false,
+    tokens: resolvedTokens,
+    isLoading: address ? (isLoading && resolvedTokens.length === 0) : false,
     refetch: handleRefetch,
   };
 }

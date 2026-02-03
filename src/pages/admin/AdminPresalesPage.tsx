@@ -111,7 +111,7 @@ function PresaleCard({ presale, isFeeRecipient }: { presale: PresaleWithStatus; 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-2 border-t border-border/50">
         <div className="space-y-1">
           <p className="text-body-sm text-ink-muted">Presale Address</p>
           <code className="block text-body-sm font-mono text-ink break-all bg-ink/5 p-3 rounded-xl">
@@ -136,7 +136,7 @@ function PresaleCard({ presale, isFeeRecipient }: { presale: PresaleWithStatus; 
             {isFeeRecipient && (
               <button
                 onClick={() => setShowFeeForm((prev) => !prev)}
-                className="btn-ghost text-xs"
+                className="btn-ghost text-xs border border-border"
               >
                 {showFeeForm ? 'Cancel' : 'Update Fees'}
               </button>

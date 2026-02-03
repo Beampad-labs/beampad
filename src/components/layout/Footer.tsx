@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import beampadLogo from '@/assets/Beampad-logo.jpg';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -39,8 +40,8 @@ const Footer: React.FC = () => {
           {/* Logo & Copyright */}
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/beampad-logo.jpg" alt="BeamPad" className="w-8 h-8" />
-              <span className="font-display text-lg brand-gradient-text">BeamPad</span>
+              <img src={beampadLogo} alt="BeamPad" className="w-8 h-8" />
+              <span className="text-lg font-bold tracking-tight brand-gradient-text">Beam<span className="font-extrabold">Pad</span></span>
             </Link>
             <p className="text-body-sm text-ink-faint">
               {currentYear} BeamPad. All rights reserved.

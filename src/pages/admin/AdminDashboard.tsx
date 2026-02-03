@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAccount } from 'wagmi';
-import { isAddress, type Address } from 'viem';
+import { formatUnits, isAddress, type Address } from 'viem';
 import { toast } from 'sonner';
 import { ArrowUpRight, Copy, Coins, Users, Settings } from 'lucide-react';
 import { OWNER } from '@/config';
@@ -61,6 +61,15 @@ const AdminDashboard: React.FC = () => {
   const endedPresales = presales?.filter((p) =>
     ['ended', 'finalized', 'cancelled'].includes(p.status)
   ).length ?? 0;
+
+  const totalRaised = useMemo(() => {
+    if (!presales || presales.length === 0) return '0';
+    let sum = 0n;
+    for (const p of presales) {
+      sum += p.totalRaised ?? 0n;
+    }
+    return Number(formatUnits(sum, 18)).toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }, [presales]);
 
   const isOnChainOwner = useMemo(() => {
     if (!address || !factoryOwner) return false;
@@ -123,7 +132,7 @@ const AdminDashboard: React.FC = () => {
         </p>
       </motion.section>
 
-      <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="stat-card">
           <p className="text-body-sm text-ink-muted">Total Presales</p>
           <p className="font-display text-display-sm text-ink">
@@ -146,6 +155,12 @@ const AdminDashboard: React.FC = () => {
           <p className="text-body-sm text-ink-muted">Ended</p>
           <p className="font-display text-display-sm text-ink">
             {isLoadingPresales ? '...' : endedPresales}
+          </p>
+        </div>
+        <div className="stat-card">
+          <p className="text-body-sm text-ink-muted">Total Raised</p>
+          <p className="font-display text-display-sm text-ink">
+            {isLoadingPresales ? '...' : totalRaised}
           </p>
         </div>
       </motion.section>

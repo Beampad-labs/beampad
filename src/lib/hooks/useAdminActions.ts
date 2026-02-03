@@ -149,7 +149,7 @@ export function useUpdatePresaleFees() {
       address: presaleAddress,
       abi: LaunchpadPresaleContract,
       functionName: 'updateFees',
-      args: [newTokenFeeBps, newProceedsFeeBps],
+      args: [BigInt(newTokenFeeBps), BigInt(newProceedsFeeBps)],
     });
   };
 

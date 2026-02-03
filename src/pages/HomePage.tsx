@@ -15,6 +15,10 @@ import {
   Zap,
   Clock,
   CheckCircle2,
+  Gem,
+  Star,
+  Shield,
+  Coins,
 } from 'lucide-react';
 import { formatUnits } from 'viem';
 
@@ -264,13 +268,50 @@ const HomePage: React.FC = () => {
       {/* CTA Banner */}
       <motion.section variants={itemVariants}>
         <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-canvas-alt via-canvas to-canvas-alt p-8 md:p-12">
-          {/* Background Pattern */}
-          <div
-            className="absolute inset-0 opacity-15"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          />
+          {/* Animated Floating Icons */}
+          {[
+            { Icon: Rocket, x: '10%', y: '15%', delay: 0, duration: 18, size: 20 },
+            { Icon: Gem, x: '75%', y: '20%', delay: 2, duration: 22, size: 16 },
+            { Icon: Zap, x: '85%', y: '65%', delay: 4, duration: 16, size: 18 },
+            { Icon: Star, x: '20%', y: '70%', delay: 1, duration: 20, size: 14 },
+            { Icon: Shield, x: '50%', y: '10%', delay: 3, duration: 24, size: 15 },
+            { Icon: Coins, x: '60%', y: '75%', delay: 5, duration: 19, size: 17 },
+          ].map(({ Icon, x, y, delay, duration, size }, i) => (
+            <motion.div
+              key={i}
+              className="absolute pointer-events-none"
+              style={{ left: x, top: y }}
+              animate={{
+                y: [0, -12, 0, 8, 0],
+                x: [0, 6, 0, -6, 0],
+                rotate: [0, 8, 0, -8, 0],
+                scale: [1, 1.08, 1, 0.95, 1],
+              }}
+              transition={{
+                duration,
+                repeat: Infinity,
+                delay,
+                ease: 'easeInOut',
+              }}
+            >
+              <div
+                className="rounded-xl flex items-center justify-center"
+                style={{
+                  width: size + 20,
+                  height: size + 20,
+                  background: 'rgba(139, 155, 249, 0.08)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(139, 155, 249, 0.12)',
+                  boxShadow: '0 4px 16px rgba(139, 155, 249, 0.06), inset 0 1px 1px rgba(255,255,255,0.05)',
+                }}
+              >
+                <Icon style={{ width: size, height: size }} className="text-accent/40" />
+              </div>
+            </motion.div>
+          ))}
+
+          {/* Gradient Accent */}
           <div
             className="absolute top-0 right-0 w-1/2 h-full opacity-30"
             style={{
@@ -278,12 +319,20 @@ const HomePage: React.FC = () => {
                 'radial-gradient(ellipse at top right, rgba(139, 155, 249, 0.35), transparent 70%)',
             }}
           />
+          <div
+            className="absolute bottom-0 left-0 w-1/3 h-1/2 opacity-20"
+            style={{
+              background:
+                'radial-gradient(ellipse at bottom left, rgba(52, 211, 153, 0.3), transparent 70%)',
+            }}
+          />
+
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-4 max-w-xl">
               <h3 className="font-display text-display-md text-ink">
-                Stake BEAM to unlock
+                Stake BeamPad to unlock
                 <br />
-                <span className="text-accent-gradient">exclusive allocations</span>
+                <span className="text-[#34D399]">exclusive allocations</span>
               </h3>
               <p className="text-body text-ink-muted">
                 Higher tier levels unlock guaranteed allocations and priority access to the most

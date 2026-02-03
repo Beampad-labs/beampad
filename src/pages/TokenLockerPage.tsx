@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, type Address } from 'viem';
 import { TokenLocker, erc20Abi, getContractAddresses, getExplorerUrl } from '@/config';
@@ -71,11 +71,12 @@ const TokenLockerPage: React.FC = () => {
   const chainId = useChainId();
   const contracts = getContractAddresses(chainId);
   const explorerUrl = getExplorerUrl(chainId);
+  const [searchParams] = useSearchParams();
 
   const { locks, isLoading: isLoadingLocks, refetch: refetchLocks } = useAllLocks();
 
-  // Create Lock Form
-  const [tokenAddress, setTokenAddress] = useState('');
+  // Create Lock Form - pre-fill token from query param
+  const [tokenAddress, setTokenAddress] = useState(searchParams.get('token') || '');
   const [amount, setAmount] = useState('');
   const [durationDays, setDurationDays] = useState('');
   const [lockName, setLockName] = useState('');
@@ -118,6 +119,7 @@ const TokenLockerPage: React.FC = () => {
     isSuccess: isActionSuccess,
   } = useWaitForTransactionReceipt({ hash: actionHash });
 
+  const [lockFilter, setLockFilter] = useState<'all' | 'locked' | 'unlockable' | 'withdrawn'>('all');
   const [extendLockId, setExtendLockId] = useState<bigint | null>(null);
   const [extendDays, setExtendDays] = useState('');
   const [transferLockId, setTransferLockId] = useState<bigint | null>(null);
@@ -356,6 +358,24 @@ const TokenLockerPage: React.FC = () => {
           </button>
         </div>
 
+        {locks && locks.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(['all', 'locked', 'unlockable', 'withdrawn'] as const).map((status) => (
+              <button
+                key={status}
+                onClick={() => setLockFilter(status)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  lockFilter === status
+                    ? 'bg-accent text-canvas'
+                    : 'bg-ink/5 text-ink-muted hover:text-ink'
+                }`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isLoadingLocks ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-3">
             <Loader2 className="w-6 h-6 text-accent animate-spin" />
@@ -370,7 +390,13 @@ const TokenLockerPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {locks.map((lock) => {
+            {locks.filter((lock) => {
+              if (lockFilter === 'all') return true;
+              const expired = isExpired(lock.unlockDate ?? 0n);
+              if (lockFilter === 'withdrawn') return lock.withdrawn;
+              if (lockFilter === 'unlockable') return !lock.withdrawn && expired;
+              return !lock.withdrawn && !expired; // locked
+            }).map((lock) => {
               const lockDate = lock.lockDate ?? 0n;
               const unlockDate = lock.unlockDate ?? 0n;
               const progress = getLockProgress(lockDate, unlockDate);

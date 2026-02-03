@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Lock,
   Timer,
-  Unlock,
   ArrowRightLeft,
   User,
 } from 'lucide-react';

@@ -1,7 +1,6 @@
 import { Badge } from '@/components/ui/badge';
-import { generateNameFromAddress } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { Lock, Package, Plus, TrendingUp, Wallet } from 'lucide-react';
+import { Lock, Package, Plus, Settings, TrendingUp, Wallet } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount, useBalance, useChainId, useReadContracts } from 'wagmi';
@@ -10,7 +9,6 @@ import {
   LaunchpadPresaleContract,
   StakingContract,
   erc20Abi,
-  getExplorerUrl,
   getNativeTokenLabel,
   getStakingContractAddress,
 } from '@/config';
@@ -55,7 +53,6 @@ const Dashboard: React.FC = () => {
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
   const safeAddress = (address ?? ZERO_ADDRESS) as Address;
   const chainId = useChainId();
-  const explorerUrl = getExplorerUrl(chainId);
   const nativeToken = getNativeTokenLabel(chainId);
   const stakingAddress = getStakingContractAddress(chainId);
 
@@ -197,12 +194,12 @@ const Dashboard: React.FC = () => {
     >
       {/* Hero Section */}
       <motion.section variants={itemVariants} className="space-y-2">
-        <h1 className="font-display text-display-xl text-ink">
+        <h1 className="font-display text-display-lg text-ink">
           {address ? (
             <>
               <span className="text-ink-muted">Welcome back, </span>
-              <span className="text-accent-gradient">
-                {generateNameFromAddress(address)}
+              <span className="text-accent-gradient font-mono text-display-md">
+                {address.slice(0, 6)}...{address.slice(-4)}
               </span>
             </>
           ) : (
@@ -375,18 +372,16 @@ const Dashboard: React.FC = () => {
               ) : (
                 <div className="space-y-2 max-h-40 overflow-auto no-scrollbar">
                   {createdTokenList.slice(0, 5).map((token) => (
-                    <a
+                    <Link
                       key={token.address}
-                      href={`${explorerUrl}/address/${token.address}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      to="/tokens"
                       className="flex items-center justify-between rounded-xl bg-canvas/40 px-3 py-2 text-body-sm text-ink hover:bg-canvas transition-colors"
                     >
                       <span>{token.symbol}</span>
                       <span className="font-mono text-ink-muted">
                         {token.address.slice(0, 6)}…{token.address.slice(-4)}
                       </span>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -411,14 +406,50 @@ const Dashboard: React.FC = () => {
                 <div>
                   <h3 className="font-display text-body text-ink">Created Presales</h3>
                   <p className="text-body-sm text-ink-muted">
-                    {createdPresales.length} total
+                    {isPresalesLoading ? 'Loading…' : `${createdPresales.length} total`}
                   </p>
                 </div>
               </div>
-              <p className="text-body-sm text-ink-muted">
-                Launch your next IDO or manage existing presales.
-              </p>
-              <Link to="/create/presale" className="btn-secondary w-full">Create Presale</Link>
+
+              {isPresalesLoading && createdPresales.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">Loading presales…</p>
+              ) : createdPresales.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">
+                  Launch your next IDO or manage existing presales.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-auto no-scrollbar">
+                  {createdPresales.slice(0, 5).map((presale) => {
+                    const statusVariant =
+                      presale.status === 'live'
+                        ? 'live'
+                        : presale.status === 'upcoming'
+                        ? 'upcoming'
+                        : 'closed';
+                    return (
+                      <Link
+                        key={presale.address}
+                        to={`/presales/manage/${presale.address}`}
+                        className="flex items-center justify-between rounded-xl bg-canvas/40 px-3 py-2 text-body-sm text-ink hover:bg-canvas transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Settings className="w-3.5 h-3.5 text-ink-muted" />
+                          {presale.saleTokenSymbol ?? 'Presale'}
+                        </span>
+                        <Badge variant={statusVariant}>{presale.status}</Badge>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              {createdPresales.length > 0 ? (
+                <Link to="/create/presale" className="btn-secondary w-full">
+                  Create Another Presale
+                </Link>
+              ) : (
+                <Link to="/create/presale" className="btn-secondary w-full">Create Presale</Link>
+              )}
             </div>
 
             {/* Token Locks */}

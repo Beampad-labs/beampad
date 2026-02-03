@@ -7,6 +7,7 @@ import {
   useLaunchpadPresale,
   useUserPresaleContribution,
 } from '@/lib/hooks/useLaunchpadPresales';
+import { useLaunchpadPresaleStore } from '@/lib/store/launchpad-presale-store';
 import {
   usePresaleContribute,
   usePresaleClaimTokens,
@@ -98,6 +99,7 @@ const PresaleDetailPage: React.FC = () => {
   const explorerUrl = getExplorerUrl(chainId);
 
   const { presale, isLoading, refetch } = useLaunchpadPresale(presaleAddress);
+  const getPresaleStatus = useLaunchpadPresaleStore((state) => state.getPresaleStatus);
   const { contribution, purchasedTokens } = useUserPresaleContribution(
     presaleAddress,
     userAddress
@@ -175,6 +177,12 @@ const PresaleDetailPage: React.FC = () => {
     presale?.owner &&
     userAddress.toLowerCase() === presale.owner.toLowerCase();
 
+  const presaleStatus = presale ? getPresaleStatus(presale) : 'upcoming';
+  const progress = useMemo(() => {
+    if (!presale?.hardCap || presale.hardCap === 0n) return 0;
+    return Number((presale.totalRaised * 100n) / presale.hardCap);
+  }, [presale?.hardCap, presale?.totalRaised]);
+
   const handleContribute = () => {
     if (!presaleAddress || parsedAmount === 0n) return;
     contribute({
@@ -222,7 +230,17 @@ const PresaleDetailPage: React.FC = () => {
               {presale.saleTokenSymbol || 'Unknown'} Presale
             </p>
           </div>
-          {getStatusBadge(presale.status)}
+          <div className="flex items-center gap-2">
+            {isOwner && (
+              <Link
+                to={`/presales/manage/${presaleAddress}`}
+                className="btn-secondary text-sm"
+              >
+                Manage Presale
+              </Link>
+            )}
+            {getStatusBadge(presaleStatus)}
+          </div>
         </div>
         {presale.requiresWhitelist && (
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 text-sm">
@@ -251,11 +269,11 @@ const PresaleDetailPage: React.FC = () => {
               <div className="w-full h-4 bg-ink/5 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-accent rounded-full transition-all duration-500"
-                  style={{ width: `${presale.progress}%` }}
+                  style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </div>
               <div className="flex justify-between text-body-sm text-ink-muted">
-                <span>{presale.progress}% filled</span>
+                <span>{Math.min(progress, 100)}% filled</span>
                 <span>
                   Soft Cap:{' '}
                   {formatUnits(presale.softCap ?? 0n, paymentDecimals)}{' '}
@@ -455,7 +473,7 @@ const PresaleDetailPage: React.FC = () => {
           )}
 
           {/* Contribute Form */}
-          {presale.status === 'live' && isConnected && (
+          {presaleStatus === 'live' && isConnected && (
             <motion.div variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
               <h3 className="font-display text-display-sm text-ink">Contribute</h3>
               <div className="space-y-3">

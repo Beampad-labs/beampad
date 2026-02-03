@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { Menu, X } from 'lucide-react';
 import { OWNER } from '@/config';
+import beampadLogo from '@/assets/Beampad-logo.jpg';
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -60,13 +61,13 @@ const Header: React.FC = () => {
         <Link to="/" className="group flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center">
             <img
-              src="/beampad-logo.jpg"
+              src={beampadLogo}
               alt="BeamPad"
               className="w-full h-full transition-transform duration-500 ease-expo-out group-hover:scale-110"
             />
           </div>
-          <span className="font-display text-display-sm brand-gradient-text">
-            BeamPad
+          <span className="text-xl font-bold tracking-tight brand-gradient-text">
+            Beam<span className="font-extrabold">Pad</span>
           </span>
         </Link>
 

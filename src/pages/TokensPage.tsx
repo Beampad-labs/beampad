@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAccount, useChainId, useReadContracts } from 'wagmi';
 import { Copy, ExternalLink, Package } from 'lucide-react';
 import { erc20Abi, getExplorerUrl } from '@/config';
+import { formatUnits } from 'viem';
 import { useUserTokens } from '@/lib/hooks/useUserTokens';
 import { toast } from 'sonner';
 
@@ -42,6 +43,7 @@ const TokensPage: React.FC = () => {
       { abi: erc20Abi, address: token, functionName: 'symbol' },
       { abi: erc20Abi, address: token, functionName: 'name' },
       { abi: erc20Abi, address: token, functionName: 'decimals' },
+      { abi: erc20Abi, address: token, functionName: 'totalSupply' },
     ] as const);
   }, [createdTokens]);
 
@@ -55,9 +57,10 @@ const TokensPage: React.FC = () => {
   const tokenList = useMemo(() => {
     if (createdTokens.length === 0) return [];
     return createdTokens.map((token, index) => {
-      const symbol = tokenMetaResults?.[index * 3]?.result as string | undefined;
-      const name = tokenMetaResults?.[index * 3 + 1]?.result as string | undefined;
-      const decimals = tokenMetaResults?.[index * 3 + 2]?.result as number | bigint | undefined;
+      const symbol = tokenMetaResults?.[index * 4]?.result as string | undefined;
+      const name = tokenMetaResults?.[index * 4 + 1]?.result as string | undefined;
+      const decimals = tokenMetaResults?.[index * 4 + 2]?.result as number | bigint | undefined;
+      const totalSupply = tokenMetaResults?.[index * 4 + 3]?.result as bigint | undefined;
       const decimalsValue = typeof decimals === 'number' ? decimals : Number(decimals ?? 18);
 
       return {
@@ -65,6 +68,7 @@ const TokensPage: React.FC = () => {
         symbol: symbol ?? 'TOKEN',
         name: name ?? 'Token',
         decimals: decimalsValue,
+        totalSupply,
       };
     });
   }, [createdTokens, tokenMetaResults]);
@@ -127,18 +131,27 @@ const TokensPage: React.FC = () => {
                 <code className="text-body-sm font-mono text-ink-muted break-all">
                   {token.address}
                 </code>
+                {token.totalSupply !== undefined && (
+                  <p className="text-body-sm text-ink-muted">
+                    Total Supply:{' '}
+                    <span className="font-mono text-ink">
+                      {Number(formatUnits(token.totalSupply, token.decimals)).toLocaleString()}
+                    </span>{' '}
+                    {token.symbol}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href={`${explorerUrl}/address/${token.address}`}
+                    href={`${explorerUrl}/token/${token.address}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary inline-flex items-center gap-2"
                   >
                     Explorer <ExternalLink className="w-4 h-4" />
                   </a>
-                  <Link to="/create/presale" className="btn-secondary">Launch Presale</Link>
-                  <Link to="/tools/airdrop" className="btn-secondary">Airdrop</Link>
-                  <Link to="/tools/token-locker" className="btn-secondary">Lock</Link>
+                  <Link to={`/create/presale?token=${token.address}`} className="btn-secondary">Launch Presale</Link>
+                  <Link to={`/tools/airdrop?token=${token.address}`} className="btn-secondary">Airdrop</Link>
+                  <Link to={`/tools/token-locker?token=${token.address}`} className="btn-secondary">Lock</Link>
                 </div>
               </div>
             ))}

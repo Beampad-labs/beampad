@@ -643,20 +643,18 @@ const ManagePresalePage: React.FC = () => {
           <button
             onClick={handleFinalize}
             disabled={isOwnerPending || isOwnerConfirming}
-            className="btn-primary h-auto py-4 flex flex-col items-center gap-1"
+            className="btn-primary inline-flex items-center justify-center gap-2"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="font-medium">Finalize Presale</span>
-            <span className="text-xs opacity-70">Enable claims for participants</span>
+            <CheckCircle2 className="w-4 h-4" />
+            Finalize Presale
           </button>
           <button
             onClick={handleCancel}
             disabled={isOwnerPending || isOwnerConfirming}
-            className="btn-secondary h-auto py-4 flex flex-col items-center gap-1 border-status-error text-status-error hover:bg-status-error/10"
+            className="btn-secondary inline-flex items-center justify-center gap-2 border-status-error text-status-error hover:bg-status-error/10"
           >
-            <Ban className="w-5 h-5" />
-            <span className="font-medium">Cancel Presale</span>
-            <span className="text-xs opacity-70">Enable refunds for participants</span>
+            <Ban className="w-4 h-4" />
+            Cancel Presale
           </button>
         </div>
 
