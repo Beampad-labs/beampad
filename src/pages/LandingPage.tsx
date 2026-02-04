@@ -182,11 +182,11 @@ const LandingPage: React.FC = () => {
                 style={{
                   width: size + 20,
                   height: size + 20,
-                  background: 'rgba(139, 155, 249, 0.08)',
+                  background: 'rgba(139, 92, 246, 0.08)',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(139, 155, 249, 0.12)',
-                  boxShadow: '0 4px 16px rgba(139, 155, 249, 0.06), inset 0 1px 1px rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(139, 92, 246, 0.12)',
+                  boxShadow: '0 4px 16px rgba(139, 92, 246, 0.06), inset 0 1px 1px rgba(255,255,255,0.05)',
                 }}
               >
                 <Icon style={{ width: size, height: size }} className="text-accent/40" />
@@ -199,14 +199,14 @@ const LandingPage: React.FC = () => {
             className="absolute top-0 right-0 w-1/2 h-full opacity-30"
             style={{
               background:
-                'radial-gradient(ellipse at top right, rgba(139, 155, 249, 0.35), transparent 70%)',
+                'radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.35), transparent 70%)',
             }}
           />
           <div
             className="absolute bottom-0 left-0 w-1/3 h-1/2 opacity-20"
             style={{
               background:
-                'radial-gradient(ellipse at bottom left, rgba(52, 211, 153, 0.3), transparent 70%)',
+                'radial-gradient(ellipse at bottom left, rgba(249, 115, 22, 0.25), transparent 70%)',
             }}
           />
 

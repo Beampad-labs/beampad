@@ -36,8 +36,8 @@ export default {
         'status-error-bg': 'rgba(248, 113, 113, 0.16)',
       },
       fontFamily: {
-        display: ['"Instrument Serif"', 'Georgia', 'serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"JetBrains Mono"', 'monospace'],
+        sans: ['"Space Mono"', '"JetBrains Mono"', 'monospace'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       fontSize: {

@@ -66,7 +66,7 @@ const HomePage: React.FC = () => {
         <div className="max-w-4xl mx-auto space-y-6">
           <h1 className="font-display text-display-xl text-ink leading-tight">
             Community-Driven Launches on{' '}
-            <span className="text-accent-gradient">Beam</span>
+            <span className="text-accent-gradient no-glow">Beam</span>
           </h1>
           <p className="text-body-lg text-ink-muted max-w-2xl mx-auto">
             BeamPad is the premier launchpad for the Beam ecosystem. Discover promising projects,
@@ -299,11 +299,11 @@ const HomePage: React.FC = () => {
                 style={{
                   width: size + 20,
                   height: size + 20,
-                  background: 'rgba(139, 155, 249, 0.08)',
+                  background: 'rgba(139, 92, 246, 0.08)',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(139, 155, 249, 0.12)',
-                  boxShadow: '0 4px 16px rgba(139, 155, 249, 0.06), inset 0 1px 1px rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(139, 92, 246, 0.12)',
+                  boxShadow: '0 4px 16px rgba(139, 92, 246, 0.06), inset 0 1px 1px rgba(255,255,255,0.05)',
                 }}
               >
                 <Icon style={{ width: size, height: size }} className="text-accent/40" />
@@ -316,14 +316,14 @@ const HomePage: React.FC = () => {
             className="absolute top-0 right-0 w-1/2 h-full opacity-30"
             style={{
               background:
-                'radial-gradient(ellipse at top right, rgba(139, 155, 249, 0.35), transparent 70%)',
+                'radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.35), transparent 70%)',
             }}
           />
           <div
             className="absolute bottom-0 left-0 w-1/3 h-1/2 opacity-20"
             style={{
               background:
-                'radial-gradient(ellipse at bottom left, rgba(52, 211, 153, 0.3), transparent 70%)',
+                'radial-gradient(ellipse at bottom left, rgba(249, 115, 22, 0.25), transparent 70%)',
             }}
           />
 

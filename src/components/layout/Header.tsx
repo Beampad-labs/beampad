@@ -66,7 +66,7 @@ const Header: React.FC = () => {
               className="w-full h-full transition-transform duration-500 ease-expo-out group-hover:scale-110"
             />
           </div>
-          <span className="text-xl font-bold tracking-tight brand-gradient-text">
+          <span className="text-xl font-bold tracking-tight brand-gradient-text no-glow">
             Beam<span className="font-extrabold">Pad</span>
           </span>
         </Link>

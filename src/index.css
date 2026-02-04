@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -24,16 +24,21 @@
 
   :root {
     --brand-gradient: linear-gradient(
-      135deg,
-      #8b9bf9 0%,
-      #8bb7f9 38%,
-      #8fdcc4 70%,
-      #f3deb0 100%
+      90deg,
+      #7b66e3 0%,
+      #5b7ad7 20%,
+      #d47fa6 40%,
+      #e08e5b 60%,
+      #e6c96a 80%,
+      #9bcb5a 100%
     );
+    --brand-glow: 0 0 10px rgba(123, 102, 227, 0.16),
+      0 0 18px rgba(91, 122, 215, 0.12),
+      0 0 24px rgba(212, 127, 166, 0.1);
   }
 
   ::selection {
-    background: rgba(139, 155, 249, 0.25);
+    background: rgba(139, 92, 246, 0.25);
   }
 
   /* Refined scrollbar */
@@ -79,6 +84,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: var(--brand-glow);
   }
 
   .brand-gradient-text {
@@ -86,6 +92,11 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: var(--brand-glow);
+  }
+
+  .no-glow {
+    text-shadow: none !important;
   }
 
   /* Animated underline for links */
@@ -254,5 +265,5 @@
   --rk-colors-accentColor: #8B9BF9 !important;
   --rk-colors-accentColorForeground: #0B0D12 !important;
   --rk-radii-connectButton: 9999px !important;
-  --rk-fonts-body: 'DM Sans', system-ui, sans-serif !important;
+  --rk-fonts-body: 'Space Mono', 'JetBrains Mono', monospace !important;
 }

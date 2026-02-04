@@ -47,7 +47,7 @@ function App() {
             position="bottom-right"
             toastOptions={{
               style: {
-                fontFamily: '"DM Sans", system-ui, sans-serif',
+                fontFamily: '"Space Mono", "JetBrains Mono", monospace',
               },
             }}
           />
