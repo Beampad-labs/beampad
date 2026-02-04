@@ -23,18 +23,26 @@
   }
 
   :root {
-    --brand-gradient: linear-gradient(
-      90deg,
-      #7b66e3 0%,
-      #5b7ad7 20%,
-      #d47fa6 40%,
-      #e08e5b 60%,
-      #e6c96a 80%,
-      #9bcb5a 100%
-    );
-    --brand-glow: 0 0 10px rgba(123, 102, 227, 0.16),
-      0 0 18px rgba(91, 122, 215, 0.12),
-      0 0 24px rgba(212, 127, 166, 0.1);
+    --brand-gradient:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.18) 28%,
+        rgba(255, 255, 255, 0.05) 55%,
+        rgba(0, 0, 0, 0.18) 100%
+      ),
+      linear-gradient(
+        90deg,
+        #7b66e3 0%,
+        #5b7ad7 20%,
+        #d47fa6 40%,
+        #e08e5b 60%,
+        #e6c96a 80%,
+        #9bcb5a 100%
+      );
+    --brand-glow: 0 0 12px rgba(123, 102, 227, 0.18),
+      0 0 20px rgba(91, 122, 215, 0.14),
+      0 0 28px rgba(212, 127, 166, 0.12);
   }
 
   ::selection {

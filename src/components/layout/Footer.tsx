@@ -41,7 +41,7 @@ const Footer: React.FC = () => {
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/" className="flex items-center gap-2">
               <img src={beampadLogo} alt="BeamPad" className="w-8 h-8" />
-              <span className="text-lg font-bold tracking-tight brand-gradient-text">Beam<span className="font-extrabold">Pad</span></span>
+              <span className="text-lg font-bold tracking-tight brand-gradient-text no-glow">Beam<span className="font-extrabold">Pad</span></span>
             </Link>
             <p className="text-body-sm text-ink-faint">
               {currentYear} BeamPad. All rights reserved.
