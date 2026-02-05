@@ -528,7 +528,7 @@ const CreateTokenPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {createdTokenAddress && (
                 <a
-                  href={`${explorerUrl}/address/${createdTokenAddress}`}
+                  href={`${explorerUrl}/token/${createdTokenAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary inline-flex items-center gap-2 justify-center"

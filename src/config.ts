@@ -1,6 +1,5 @@
 import { type Address, http } from "viem";
 import { beam, beamTestnet } from "wagmi/chains";
-import { sepolia } from "viem/chains";
 import { createConfig } from "wagmi";
 import {
   connectorsForWallets,
@@ -16,7 +15,7 @@ import {
 // Chain definitions
 // ---------------------------------------------------------------------------
 
-export const SUPPORTED_CHAINS = [beam, beamTestnet, sepolia] as const;
+export const SUPPORTED_CHAINS = [beam, beamTestnet] as const;
 
 // ---------------------------------------------------------------------------
 // Wagmi / RainbowKit config
@@ -43,7 +42,6 @@ export const config = createConfig({
   transports: {
     [beam.id]: http(),
     [beamTestnet.id]: http(),
-    [sepolia.id]: http(),
   },
 });
 
@@ -76,18 +74,11 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddressMap> = {
     airdropMultisender: ZERO,
   },
   [beamTestnet.id]: {
-    tokenLocker: ZERO,
-    nftFactory: ZERO,
-    presaleFactory: ZERO,
-    tokenFactory: ZERO,
-    airdropMultisender: ZERO,
-  },
-  [sepolia.id]: {
-    tokenLocker: "0x71B58F74C545f0dBB505a58B0958b4630fD57956",
-    nftFactory: "0x2C20CE872Dc6b55130112FC5D66EEB26C1245Ff9",
-    presaleFactory: "0x1ba1613a58897558796Ee03b07eE805B43166Bdf",
-    tokenFactory: "0x42e3d7e928A010C764d987EbEeB60A0380d7003B",
-    airdropMultisender: "0x0477ad36299E215bcb7a88fDc1f20C56405cB9b4",
+    tokenLocker: "0x81850e53dec753b95de4599173755bc640575c3d",
+    nftFactory: "0x83faf9a7b7a33ff761011b40dc2ec54a079c2459",
+    presaleFactory: "0x40bfd48521cdaa3ea460917e053738765063745d",
+    tokenFactory: "0xc73290ec0d30c793250d50d2ec1bcfa36e2b00c8",
+    airdropMultisender: "0x153a2142d68ee6bd2a4cd63b46c0f60aec34cc14",
   },
 };
 
@@ -98,7 +89,6 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddressMap> = {
 export const STAKING_CONTRACT_ADDRESSES: Record<number, Address> = {
   [beam.id]: ZERO,
   [beamTestnet.id]: ZERO,
-  [sepolia.id]: "0x5cE08fB8DE00059cCf4bC8a8FA85d74Ec92784D3",
 };
 
 // ---------------------------------------------------------------------------
@@ -108,7 +98,6 @@ export const STAKING_CONTRACT_ADDRESSES: Record<number, Address> = {
 export const EXPLORER_URLS: Record<number, string> = {
   [beam.id]: "https://subnets.avax.network/beam",
   [beamTestnet.id]: "https://subnets-test.avax.network/beam",
-  [sepolia.id]: "https://sepolia.etherscan.io",
 };
 
 // ---------------------------------------------------------------------------
@@ -118,7 +107,6 @@ export const EXPLORER_URLS: Record<number, string> = {
 export const CHAIN_LABELS: Record<number, string> = {
   [beam.id]: "Beam Mainnet",
   [beamTestnet.id]: "Beam Testnet",
-  [sepolia.id]: "Sepolia",
 };
 
 // ---------------------------------------------------------------------------
@@ -128,7 +116,6 @@ export const CHAIN_LABELS: Record<number, string> = {
 export const NATIVE_TOKEN_LABELS: Record<number, string> = {
   [beam.id]: "BEAM",
   [beamTestnet.id]: "BEAM",
-  [sepolia.id]: "ETH",
 };
 
 // ---------------------------------------------------------------------------
