@@ -64,11 +64,11 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <motion.section variants={itemVariants} className="text-center pt-8 md:pt-16">
         <div className="max-w-4xl mx-auto space-y-6">
-          <h1 className="font-display text-display-xl text-ink leading-tight">
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-ink leading-tight">
             Community-Driven Launches on{' '}
             <span className="text-accent-gradient no-glow">Beam</span>
           </h1>
-          <p className="text-body-lg text-ink-muted max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-ink-muted max-w-2xl mx-auto">
             BeamPad is the premier launchpad for the Beam ecosystem. Discover promising projects,
             participate in fair launches, and build the future of decentralized gaming and DeFi.
           </p>
