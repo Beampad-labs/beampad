@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,13 @@ import beampadLogo from '@/assets/Beampad-logo.jpg';
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [chainInfo, setChainInfo] = useState<{
+    name?: string;
+    iconUrl?: string;
+    hasIcon?: boolean;
+    unsupported?: boolean;
+  } | null>(null);
+  const openChainModalRef = useRef<(() => void) | null>(null);
   const location = useLocation();
   const { isConnected, address } = useAccount();
   const isOwner = Boolean(address && address.toLowerCase() === OWNER.toLowerCase());
@@ -44,6 +51,10 @@ const Header: React.FC = () => {
         ...(isOwner ? [{ path: '/admin', label: 'Admin' }] : []),
       ]
     : publicNavItems;
+
+  const handleMobileChainSwitch = useCallback(() => {
+    openChainModalRef.current?.();
+  }, []);
 
   return (
     <motion.header
@@ -118,14 +129,35 @@ const Header: React.FC = () => {
               const ready = mounted;
               const connected = ready && account && chain;
 
+              // Store chain modal opener and info for mobile menu
+              openChainModalRef.current = openChainModal;
+              if (connected) {
+                const info = {
+                  name: chain.name,
+                  iconUrl: chain.iconUrl,
+                  hasIcon: chain.hasIcon,
+                  unsupported: chain.unsupported,
+                };
+                // Only update if changed to avoid infinite re-renders
+                if (
+                  chainInfo?.name !== info.name ||
+                  chainInfo?.unsupported !== info.unsupported ||
+                  chainInfo?.iconUrl !== info.iconUrl
+                ) {
+                  queueMicrotask(() => setChainInfo(info));
+                }
+              } else if (chainInfo !== null) {
+                queueMicrotask(() => setChainInfo(null));
+              }
+
               return (
                 <div
                   {...(!ready && {
                     'aria-hidden': true,
                     style: {
                       opacity: 0,
-                      pointerEvents: 'none',
-                      userSelect: 'none',
+                      pointerEvents: 'none' as const,
+                      userSelect: 'none' as const,
                     },
                   })}
                 >
@@ -206,6 +238,31 @@ const Header: React.FC = () => {
             className="md:hidden overflow-hidden border-b border-border bg-canvas/95 backdrop-blur-xl"
           >
             <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
+              {isConnected && chainInfo && (
+                <button
+                  onClick={handleMobileChainSwitch}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-body font-medium transition-colors duration-200 ${
+                    chainInfo.unsupported
+                      ? 'text-status-error bg-status-error/10'
+                      : 'text-ink-muted hover:text-ink hover:bg-canvas-alt/50'
+                  }`}
+                >
+                  {chainInfo.unsupported ? (
+                    'Switch Network'
+                  ) : (
+                    <>
+                      {chainInfo.hasIcon && chainInfo.iconUrl && (
+                        <img
+                          alt={chainInfo.name ?? 'Chain icon'}
+                          src={chainInfo.iconUrl}
+                          className="w-5 h-5 rounded-full"
+                        />
+                      )}
+                      {chainInfo.name}
+                    </>
+                  )}
+                </button>
+              )}
               {navItems.map((item) => (
                 <Link
                   key={item.path}

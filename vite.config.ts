@@ -10,4 +10,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     }
   },
+  server: {
+    proxy: {
+      '/api/rpc': {
+        target: 'https://build.onbeam.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/rpc/, '/rpc'),
+      },
+    },
+  },
 })

@@ -22,7 +22,7 @@ export function useUserLocks(forceRefetch = false) {
   const { data: lockIds, isLoading, refetch } = useReadContract({
     abi: TokenLocker,
     address: tokenLocker,
-    functionName: 'getUserLocks',
+    functionName: 'locksOfOwner',
     args: [address as `0x${string}`],
     query: {
       enabled: shouldFetch,

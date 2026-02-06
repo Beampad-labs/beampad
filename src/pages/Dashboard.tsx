@@ -194,11 +194,12 @@ const Dashboard: React.FC = () => {
     >
       {/* Hero Section */}
       <motion.section variants={itemVariants} className="space-y-2">
-        <h1 className="font-display text-display-lg text-ink">
+        <h1 className="font-display text-display-md sm:text-display-lg text-ink">
           {address ? (
             <>
               <span className="text-ink-muted">Welcome back, </span>
-              <span className="text-accent-gradient font-mono text-display-md">
+              <br className="sm:hidden" />
+              <span className="text-accent-gradient font-mono text-body-lg sm:text-display-md">
                 {address.slice(0, 6)}...{address.slice(-4)}
               </span>
             </>
@@ -350,7 +351,7 @@ const Dashboard: React.FC = () => {
       <motion.section variants={itemVariants} className="space-y-6">
         <h2 className="font-display text-display-md text-ink">My Creations</h2>
         {isConnected ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {/* Created Tokens */}
             <div className="bg-canvas-alt rounded-2xl border border-border p-5 space-y-4">
               <div className="flex items-center gap-3">
