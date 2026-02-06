@@ -40,8 +40,8 @@ export const config = createConfig({
   connectors,
   chains: SUPPORTED_CHAINS,
   transports: {
-    [beam.id]: http(),
-    [beamTestnet.id]: http(),
+    [beam.id]: http("/api/rpc/mainnet"),
+    [beamTestnet.id]: http("/api/rpc/testnet"),
   },
 });
 
