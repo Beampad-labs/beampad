@@ -276,8 +276,10 @@ const CreateTokenPage: React.FC = () => {
             initialSupply: supply,
             initialRecipient: recipientAddr,
           },
-          taxWallet as Address,
-          BigInt(taxBps),
+          {
+            taxWallet: taxWallet as Address,
+            taxBps: BigInt(taxBps),
+          },
         ],
       });
     } else {
