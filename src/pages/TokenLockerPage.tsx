@@ -366,7 +366,7 @@ const TokenLockerPage: React.FC = () => {
                 onClick={() => setLockFilter(status)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   lockFilter === status
-                    ? 'bg-accent text-canvas'
+                    ? 'bg-accent text-accent-foreground'
                     : 'bg-ink/5 text-ink-muted hover:text-ink'
                 }`}
               >

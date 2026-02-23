@@ -3,11 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
-import { Menu, X } from 'lucide-react';
+import { AlertTriangle, Menu, Moon, Sun, Wallet, X } from 'lucide-react';
 import { OWNER } from '@/config';
 import beampadLogo from '@/assets/Beampad-logo.jpg';
 
-const Header: React.FC = () => {
+type HeaderProps = {
+  themeMode: 'dark' | 'light';
+  onToggleTheme: () => void;
+};
+
+const Header: React.FC<HeaderProps> = ({ themeMode, onToggleTheme }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [chainInfo, setChainInfo] = useState<{
@@ -17,6 +22,8 @@ const Header: React.FC = () => {
     unsupported?: boolean;
   } | null>(null);
   const openChainModalRef = useRef<(() => void) | null>(null);
+  const openAccountModalRef = useRef<(() => void) | null>(null);
+  const openConnectModalRef = useRef<(() => void) | null>(null);
   const location = useLocation();
   const { isConnected, address } = useAccount();
   const isOwner = Boolean(address && address.toLowerCase() === OWNER.toLowerCase());
@@ -53,8 +60,23 @@ const Header: React.FC = () => {
     : publicNavItems;
 
   const handleMobileChainSwitch = useCallback(() => {
+    setMobileMenuOpen(false);
     openChainModalRef.current?.();
   }, []);
+
+  const handleMobileWalletAction = useCallback(() => {
+    setMobileMenuOpen(false);
+    if (isConnected) {
+      openAccountModalRef.current?.();
+      return;
+    }
+    openConnectModalRef.current?.();
+  }, [isConnected]);
+
+  const handleMobileThemeToggle = useCallback(() => {
+    setMobileMenuOpen(false);
+    onToggleTheme();
+  }, [onToggleTheme]);
 
   return (
     <motion.header
@@ -62,8 +84,8 @@ const Header: React.FC = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`sticky top-0 z-50 py-5 border-b border-transparent transition-colors duration-300 ${
-        scrolled
-          ? 'bg-canvas/80 backdrop-blur-xl border-border'
+        scrolled || themeMode === 'light'
+          ? 'bg-canvas-alt/90 backdrop-blur-xl border-border'
           : 'bg-transparent'
       }`}
     >
@@ -115,8 +137,21 @@ const Header: React.FC = () => {
           ))}
         </div>
 
-        {/* Right side: Connect + Mobile menu button */}
+        {/* Right side: Theme + Connect + Mobile menu button */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleTheme}
+            className="hidden md:inline-flex btn-ghost p-2"
+            aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {themeMode === 'dark' ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </button>
+
           <ConnectButton.Custom>
             {({
               account,
@@ -131,6 +166,8 @@ const Header: React.FC = () => {
 
               // Store chain modal opener and info for mobile menu
               openChainModalRef.current = openChainModal;
+              openAccountModalRef.current = openAccountModal;
+              openConnectModalRef.current = openConnectModal;
               if (connected) {
                 const info = {
                   name: chain.name,
@@ -164,49 +201,80 @@ const Header: React.FC = () => {
                   {(() => {
                     if (!connected) {
                       return (
-                        <button
-                          onClick={openConnectModal}
-                          className="btn-primary"
-                        >
-                          Connect
-                        </button>
+                        <>
+                          <button
+                            onClick={openConnectModal}
+                            className="hidden md:inline-flex btn-primary"
+                          >
+                            Connect
+                          </button>
+                          <button
+                            onClick={openConnectModal}
+                            className="md:hidden btn-ghost p-2"
+                            aria-label="Connect wallet"
+                            title="Connect wallet"
+                          >
+                            <Wallet className="w-4 h-4" />
+                          </button>
+                        </>
                       );
                     }
 
                     if (chain.unsupported) {
                       return (
-                        <button
-                          onClick={openChainModal}
-                          className="btn-secondary text-status-error border-status-error"
-                        >
-                          Wrong network
-                        </button>
+                        <>
+                          <button
+                            onClick={openChainModal}
+                            className="hidden md:inline-flex btn-secondary text-status-error border-status-error"
+                          >
+                            Wrong network
+                          </button>
+                          <button
+                            onClick={openChainModal}
+                            className="md:hidden btn-ghost p-2 text-status-error"
+                            aria-label="Wrong network. Switch network"
+                            title="Switch network"
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                          </button>
+                        </>
                       );
                     }
 
                     return (
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={openChainModal}
-                          className="btn-ghost flex items-center gap-2"
-                        >
-                          {chain.hasIcon && chain.iconUrl && (
-                            <img
-                              alt={chain.name ?? 'Chain icon'}
-                              src={chain.iconUrl}
-                              className="w-4 h-4 rounded-full"
-                            />
-                          )}
-                          <span className="hidden sm:inline text-body-sm">{chain.name}</span>
-                        </button>
+                        <div className="hidden md:flex items-center gap-2">
+                          <button
+                            onClick={openChainModal}
+                            className="btn-ghost flex items-center gap-2"
+                          >
+                            {chain.hasIcon && chain.iconUrl && (
+                              <img
+                                alt={chain.name ?? 'Chain icon'}
+                                src={chain.iconUrl}
+                                className="w-4 h-4 rounded-full"
+                              />
+                            )}
+                            <span className="hidden sm:inline text-body-sm">{chain.name}</span>
+                          </button>
+
+                          <button
+                            onClick={openAccountModal}
+                            className="btn-secondary"
+                          >
+                            <span className="font-mono text-body-sm">
+                              {account.displayName}
+                            </span>
+                          </button>
+                        </div>
 
                         <button
                           onClick={openAccountModal}
-                          className="btn-secondary"
+                          className="md:hidden btn-ghost p-2"
+                          aria-label="Open wallet menu"
+                          title="Wallet"
                         >
-                          <span className="font-mono text-body-sm">
-                            {account.displayName}
-                          </span>
+                          <Wallet className="w-4 h-4" />
                         </button>
                       </div>
                     );
@@ -235,9 +303,34 @@ const Header: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden overflow-hidden border-b border-border bg-canvas/95 backdrop-blur-xl"
+            className="md:hidden overflow-hidden border-b border-border bg-canvas-alt/95 backdrop-blur-xl"
           >
             <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
+              <button
+                onClick={handleMobileThemeToggle}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-body font-medium text-ink-muted hover:text-ink hover:bg-canvas/40 transition-colors duration-200"
+              >
+                {themeMode === 'dark' ? (
+                  <>
+                    <Sun className="w-5 h-5" />
+                    Switch to Light Mode
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-5 h-5" />
+                    Switch to Dark Mode
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleMobileWalletAction}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-body font-medium text-ink-muted hover:text-ink hover:bg-canvas/40 transition-colors duration-200"
+              >
+                <Wallet className="w-5 h-5" />
+                {isConnected ? 'Wallet' : 'Connect Wallet'}
+              </button>
+
               {isConnected && chainInfo && (
                 <button
                   onClick={handleMobileChainSwitch}

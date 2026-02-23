@@ -133,7 +133,7 @@ const PresalesPage: React.FC = () => {
               onClick={() => setActiveTab(tab.value)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 activeTab === tab.value
-                  ? 'bg-accent text-white shadow-sm'
+                  ? 'bg-accent text-accent-foreground shadow-sm'
                   : 'bg-ink/5 text-ink-muted hover:bg-ink/10'
               }`}
             >

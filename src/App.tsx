@@ -1,17 +1,24 @@
 import { BrowserRouter as Router } from 'react-router-dom';
 import AppRoutes from './AppRoutes';
 
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, useChainId } from 'wagmi';
 import { config } from './config';
 import { useBlockchainStore } from './lib/store/blockchain-store';
 import { useLaunchpadPresaleStore } from './lib/store/launchpad-presale-store';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
+const THEME_STORAGE_KEY = 'beampad-theme';
+type ThemeMode = 'dark' | 'light';
+
+const getInitialTheme = (): ThemeMode => {
+  if (typeof window === 'undefined') return 'dark';
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+};
 
 // Clears zustand caches when the user switches chains
 function ChainCacheReset() {
@@ -32,16 +39,37 @@ function ChainCacheReset() {
 }
 
 function App() {
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({
+  const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
+
+  const toggleTheme = useCallback(() => {
+    setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  const rainbowKitTheme = useMemo(
+    () =>
+      themeMode === 'light'
+        ? lightTheme({
+            accentColor: '#6C78E0',
+            accentColorForeground: '#F8FAFC',
+            borderRadius: 'large',
+          })
+        : darkTheme({
             accentColor: '#8B9BF9',
             accentColorForeground: '#0B0D12',
             borderRadius: 'large',
-          })}
-        >
+          }),
+    [themeMode],
+  );
+
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider theme={rainbowKitTheme}>
           <ChainCacheReset />
           <Toaster
             position="bottom-right"
@@ -52,7 +80,7 @@ function App() {
             }}
           />
           <Router>
-            <AppRoutes />
+            <AppRoutes themeMode={themeMode} onToggleTheme={toggleTheme} />
           </Router>
         </RainbowKitProvider>
       </QueryClientProvider>

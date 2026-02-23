@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const withOpacity = (cssVariable) => `rgb(var(${cssVariable}) / <alpha-value>)`;
+
 export default {
   content: [
     "./index.html",
@@ -7,18 +9,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Vibrant color palette
-        'canvas': '#0B0D12',
-        'canvas-alt': '#121826',
-        'ink': '#F8FAFC',
-        'ink-muted': '#9AA4B2',
-        'ink-faint': '#6B7280',
-        'border': '#1F2937',
-        'border-strong': '#2B3648',
-        // Accent - soft periwinkle
-        'accent': '#8B9BF9',
-        'accent-hover': '#7A89F0',
-        'accent-muted': 'rgba(139, 155, 249, 0.16)',
+        // Theme-aware core palette
+        'canvas': withOpacity('--color-canvas'),
+        'canvas-alt': withOpacity('--color-canvas-alt'),
+        'ink': withOpacity('--color-ink'),
+        'ink-muted': withOpacity('--color-ink-muted'),
+        'ink-faint': withOpacity('--color-ink-faint'),
+        'border': withOpacity('--color-border'),
+        'border-strong': withOpacity('--color-border-strong'),
+        // Accent
+        'accent': withOpacity('--color-accent'),
+        'accent-hover': withOpacity('--color-accent-hover'),
+        'accent-foreground': withOpacity('--color-accent-foreground'),
+        'accent-muted': 'rgb(var(--color-accent) / 0.16)',
         // Secondary colors for variety
         'pastel-lavender': '#818CF8',
         'pastel-mint': '#34D399',
@@ -26,14 +29,14 @@ export default {
         'pastel-sky': '#60A5FA',
         'pastel-lemon': '#FCD34D',
         // Status colors - vibrant
-        'status-live': '#34D399',
-        'status-live-bg': 'rgba(52, 211, 153, 0.16)',
-        'status-upcoming': '#60A5FA',
-        'status-upcoming-bg': 'rgba(96, 165, 250, 0.16)',
-        'status-closed': '#94A3B8',
-        'status-closed-bg': 'rgba(148, 163, 184, 0.16)',
-        'status-error': '#F87171',
-        'status-error-bg': 'rgba(248, 113, 113, 0.16)',
+        'status-live': withOpacity('--color-status-live'),
+        'status-live-bg': 'rgb(var(--color-status-live) / 0.16)',
+        'status-upcoming': withOpacity('--color-status-upcoming'),
+        'status-upcoming-bg': 'rgb(var(--color-status-upcoming) / 0.16)',
+        'status-closed': withOpacity('--color-status-closed'),
+        'status-closed-bg': 'rgb(var(--color-status-closed) / 0.16)',
+        'status-error': withOpacity('--color-status-error'),
+        'status-error-bg': 'rgb(var(--color-status-error) / 0.16)',
       },
       fontFamily: {
         display: ['"JetBrains Mono"', 'monospace'],

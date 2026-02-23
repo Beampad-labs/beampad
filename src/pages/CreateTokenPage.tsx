@@ -356,7 +356,7 @@ const CreateTokenPage: React.FC = () => {
                 <div
                   className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                     selectedType === tt.type
-                      ? 'bg-accent text-white'
+                      ? 'bg-accent text-accent-foreground'
                       : 'bg-ink/5 text-ink-muted'
                   }`}
                 >

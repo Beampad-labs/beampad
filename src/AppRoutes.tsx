@@ -22,9 +22,14 @@ import AdminPresalesPage from './pages/admin/AdminPresalesPage';
 import AdminWhitelistPage from './pages/admin/AdminWhitelistPage';
 import TokensPage from './pages/TokensPage';
 
-const AppRoutes = () => {
+type AppRoutesProps = {
+  themeMode: 'dark' | 'light';
+  onToggleTheme: () => void;
+};
+
+const AppRoutes = ({ themeMode, onToggleTheme }: AppRoutesProps) => {
   return (
-    <Layout>
+    <Layout themeMode={themeMode} onToggleTheme={onToggleTheme}>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<HomePage />} />
@@ -55,6 +60,6 @@ const AppRoutes = () => {
       </Routes>
     </Layout>
   );
-}
+};
 
 export default AppRoutes;

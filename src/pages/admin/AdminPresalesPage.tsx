@@ -229,7 +229,7 @@ const AdminPresalesPage: React.FC = () => {
             onClick={() => setFilter(status as typeof filter)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               filter === status
-                ? 'bg-accent text-canvas'
+                ? 'bg-accent text-accent-foreground'
                 : 'bg-ink/5 text-ink-muted hover:text-ink'
             }`}
           >
