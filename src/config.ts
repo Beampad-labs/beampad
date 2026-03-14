@@ -58,6 +58,7 @@ export const OWNER: Address = "0x4C3Af86D9F5B8bDeB0fD211E9ed4590d709CaA71" as Ad
 export type ContractAddressMap = {
   tokenLocker: Address;
   nftFactory: Address;
+  nftFactoryLens: Address;
   presaleFactory: Address;
   tokenFactory: Address;
   airdropMultisender: Address;
@@ -69,14 +70,16 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddressMap> = {
   [beam.id]: {
     tokenLocker: ZERO,
     nftFactory: ZERO,
+    nftFactoryLens: ZERO,
     presaleFactory: ZERO,
     tokenFactory: ZERO,
     airdropMultisender: ZERO,
   },
   [beamTestnet.id]: {
     tokenLocker: "0x81850e53dec753b95de4599173755bc640575c3d",
-    nftFactory: "0x83faf9a7b7a33ff761011b40dc2ec54a079c2459",
-    presaleFactory: "0x40bfd48521cdaa3ea460917e053738765063745d",
+    nftFactory: "0xDD3d8e4Dddab003B42a3a865E6FA3bBDDe6d23c1",
+    nftFactoryLens: "0x33f7ed76Ec583fdd2727Fc2Db8D7FD107e04121a",
+    presaleFactory: "0x23B09983E7F4A13b4DB40661C8F45580C692B262",
     tokenFactory: "0xc73290ec0d30c793250d50d2ec1bcfa36e2b00c8",
     airdropMultisender: "0x153a2142d68ee6bd2a4cd63b46c0f60aec34cc14",
   },
@@ -581,6 +584,13 @@ export const PresaleContract = [
   },
   {
     type: "function",
+    name: "successfulFinalization",
+    inputs: [],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "claimEnabled",
     inputs: [],
     outputs: [{ name: "", type: "bool", internalType: "bool" }],
@@ -659,6 +669,20 @@ export const PresaleContract = [
   {
     type: "function",
     name: "finalize",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "endAfterSoftcapReached",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "enableClaims",
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
@@ -1066,31 +1090,504 @@ export const AirdropMultiSender = [
 
 export const NFTFactory = [
   {
+    inputs: [],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
     inputs: [
-      { internalType: "string", name: "name", type: "string" },
-      { internalType: "string", name: "symbol", type: "string" },
-      { internalType: "string", name: "baseURI", type: "string" },
-      { internalType: "uint256", name: "maxSupply", type: "uint256" },
-      { internalType: "uint256", name: "mintPrice", type: "uint256" },
+      {
+        internalType: "struct NFTFactory.NFTParams",
+        name: "params",
+        type: "tuple",
+        components: [
+          { internalType: "string", name: "name", type: "string" },
+          { internalType: "string", name: "symbol", type: "string" },
+          { internalType: "string", name: "baseURI", type: "string" },
+          { internalType: "string", name: "contractURI", type: "string" },
+          {
+            internalType: "struct NFTFactory.WhitelistParams",
+            name: "whitelistConfig",
+            type: "tuple",
+            components: [
+              { internalType: "bool", name: "enabled", type: "bool" },
+              { internalType: "uint64", name: "whitelistStart", type: "uint64" },
+              { internalType: "uint128", name: "whitelistPrice", type: "uint128" },
+            ],
+          },
+          { internalType: "uint256", name: "maxSupply", type: "uint256" },
+          { internalType: "address", name: "payoutWallet", type: "address" },
+          {
+            internalType: "struct MintConfig",
+            name: "mintConfig",
+            type: "tuple",
+            components: [
+              { internalType: "uint64", name: "saleStart", type: "uint64" },
+              { internalType: "uint64", name: "saleEnd", type: "uint64" },
+              { internalType: "uint32", name: "walletLimit", type: "uint32" },
+              { internalType: "uint128", name: "price", type: "uint128" },
+            ],
+          },
+        ],
+      },
     ],
-    name: "createNFTCollection",
+    name: "createETHNFT",
     outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "struct NFTFactory.NFTParams",
+        name: "params",
+        type: "tuple",
+        components: [
+          { internalType: "string", name: "name", type: "string" },
+          { internalType: "string", name: "symbol", type: "string" },
+          { internalType: "string", name: "baseURI", type: "string" },
+          { internalType: "string", name: "contractURI", type: "string" },
+          {
+            internalType: "struct NFTFactory.WhitelistParams",
+            name: "whitelistConfig",
+            type: "tuple",
+            components: [
+              { internalType: "bool", name: "enabled", type: "bool" },
+              { internalType: "uint64", name: "whitelistStart", type: "uint64" },
+              { internalType: "uint128", name: "whitelistPrice", type: "uint128" },
+            ],
+          },
+          { internalType: "uint256", name: "maxSupply", type: "uint256" },
+          { internalType: "address", name: "payoutWallet", type: "address" },
+          {
+            internalType: "struct MintConfig",
+            name: "mintConfig",
+            type: "tuple",
+            components: [
+              { internalType: "uint64", name: "saleStart", type: "uint64" },
+              { internalType: "uint64", name: "saleEnd", type: "uint64" },
+              { internalType: "uint32", name: "walletLimit", type: "uint32" },
+              { internalType: "uint128", name: "price", type: "uint128" },
+            ],
+          },
+        ],
+      },
+    ],
+    name: "create721AETHnFT",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "creator", type: "address" }],
+    name: "tokensCreatedBy",
+    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "totalDeployments",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "deployments",
+    outputs: [
+      { internalType: "address", name: "nft", type: "address" },
+      { internalType: "bool", name: "is721A", type: "bool" },
+      { internalType: "address", name: "creator", type: "address" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "factoryOwner",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "ethNFTDeployer",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "nft721ADeployer",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "deploymentIndex",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "feeRecipient",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "proceedsFeeBps",
+    outputs: [{ internalType: "uint96", name: "", type: "uint96" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "FEE_BPS_DENOMINATOR",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "newRecipient", type: "address" }],
+    name: "setFeeRecipient",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint96", name: "newProceedsFeeBps", type: "uint96" }],
+    name: "setProceedsFeeBps",
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
   {
     anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "collection", type: "address" },
       { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "string", name: "name", type: "string" },
-      { indexed: false, internalType: "string", name: "symbol", type: "string" },
-      { indexed: false, internalType: "uint256", name: "maxSupply", type: "uint256" },
+      { indexed: true, internalType: "address", name: "nft", type: "address" },
+      { indexed: true, internalType: "bool", name: "is721A", type: "bool" },
     ],
-    name: "NFTCollectionCreated",
+    name: "NFTCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, internalType: "address", name: "newRecipient", type: "address" }],
+    name: "FeeRecipientUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: false, internalType: "uint96", name: "newProceedsFeeBps", type: "uint96" }],
+    name: "ProceedsFeeUpdated",
     type: "event",
   },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// NFT Collection ABI (LaunchpadNFTEth / LaunchpadNFT721AEth)
+// ---------------------------------------------------------------------------
+
+export const NFTCollectionContract = [
+  {
+    inputs: [],
+    name: "name",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "symbol",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "maxSupply",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "totalMinted",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "mintPrice",
+    outputs: [{ internalType: "uint128", name: "", type: "uint128" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "walletLimit",
+    outputs: [{ internalType: "uint32", name: "", type: "uint32" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "saleStart",
+    outputs: [{ internalType: "uint64", name: "", type: "uint64" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "saleEnd",
+    outputs: [{ internalType: "uint64", name: "", type: "uint64" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "whitelistEnabled",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "whitelistStart",
+    outputs: [{ internalType: "uint64", name: "", type: "uint64" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "whitelistPrice",
+    outputs: [{ internalType: "uint128", name: "", type: "uint128" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "payoutWallet",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "feeRecipient",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "proceedsFeeBps",
+    outputs: [{ internalType: "uint96", name: "", type: "uint96" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "remainingSupply",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "string", name: "newBaseURI", type: "string" }],
+    name: "setBaseURI",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "string", name: "newContractURI", type: "string" }],
+    name: "setContractURI",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "contractURI",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "newWallet", type: "address" }],
+    name: "setPayoutWallet",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint96", name: "newProceedsFeeBps", type: "uint96" },
+      { internalType: "address", name: "newFeeRecipient", type: "address" },
+    ],
+    name: "updateFeeConfig",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bool", name: "enabled", type: "bool" },
+      { internalType: "uint64", name: "whitelistStart_", type: "uint64" },
+      { internalType: "uint128", name: "whitelistPrice_", type: "uint128" },
+    ],
+    name: "setWhitelistConfig",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "account", type: "address" }],
+    name: "addToWhitelist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "account", type: "address" }],
+    name: "removeFromWhitelist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address[]", name: "accounts", type: "address[]" }],
+    name: "addManyToWhitelist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address[]", name: "accounts", type: "address[]" }],
+    name: "removeManyFromWhitelist",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "struct MintConfig",
+        name: "config",
+        type: "tuple",
+        components: [
+          { internalType: "uint64", name: "saleStart", type: "uint64" },
+          { internalType: "uint64", name: "saleEnd", type: "uint64" },
+          { internalType: "uint32", name: "walletLimit", type: "uint32" },
+          { internalType: "uint128", name: "price", type: "uint128" },
+        ],
+      },
+    ],
+    name: "setMintConfig",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "struct SaleTerms",
+        name: "terms",
+        type: "tuple",
+        components: [
+          { internalType: "string", name: "baseURI", type: "string" },
+          { internalType: "string", name: "contractURI", type: "string" },
+          { internalType: "address", name: "payoutWallet", type: "address" },
+          { internalType: "uint64", name: "saleStart", type: "uint64" },
+          { internalType: "uint64", name: "saleEnd", type: "uint64" },
+          { internalType: "uint128", name: "mintPrice", type: "uint128" },
+          { internalType: "uint32", name: "walletLimit", type: "uint32" },
+        ],
+      },
+    ],
+    name: "updateSaleTerms",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }],
+    name: "withdrawRaised",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "quantity", type: "uint256" }],
+    name: "mint",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "wallet", type: "address" }],
+    name: "mintedBy",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "wallet", type: "address" }],
+    name: "mintedPerWallet",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "whitelist",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
+    name: "ownerOf",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
+    name: "tokenURI",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+// ---------------------------------------------------------------------------
+// NFT Collection display images (address → image path)
+// ---------------------------------------------------------------------------
+
+export const NFT_COLLECTION_IMAGES: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // ERC20 ABI
@@ -1196,10 +1693,80 @@ export const erc20Abi = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// NFTFactoryLens ABI
+// ---------------------------------------------------------------------------
+
+const COLLECTION_INFO_COMPONENTS = [
+  { internalType: "address", name: "nft", type: "address" },
+  { internalType: "address", name: "creator", type: "address" },
+  { internalType: "bool", name: "is721A", type: "bool" },
+  { internalType: "string", name: "name", type: "string" },
+  { internalType: "string", name: "symbol", type: "string" },
+  { internalType: "string", name: "contractURI", type: "string" },
+  { internalType: "uint256", name: "maxSupply", type: "uint256" },
+  { internalType: "uint256", name: "totalMinted", type: "uint256" },
+  { internalType: "uint256", name: "remaining", type: "uint256" },
+  { internalType: "uint128", name: "mintPrice", type: "uint128" },
+  { internalType: "uint32", name: "walletLimit", type: "uint32" },
+  { internalType: "uint64", name: "saleStart", type: "uint64" },
+  { internalType: "uint64", name: "saleEnd", type: "uint64" },
+  { internalType: "bool", name: "whitelistEnabled", type: "bool" },
+  { internalType: "uint64", name: "whitelistStart", type: "uint64" },
+  { internalType: "uint128", name: "whitelistPrice", type: "uint128" },
+  { internalType: "address", name: "owner", type: "address" },
+  { internalType: "address", name: "payoutWallet", type: "address" },
+  { internalType: "address", name: "feeRecipient", type: "address" },
+  { internalType: "uint96", name: "proceedsFeeBps", type: "uint96" },
+] as const;
+
+export const NFTFactoryLens = [
+  {
+    inputs: [{ internalType: "address", name: "nft", type: "address" }],
+    name: "getCollection",
+    outputs: [{
+      internalType: "struct NFTFactoryLens.CollectionInfo",
+      name: "",
+      type: "tuple",
+      components: COLLECTION_INFO_COMPONENTS,
+    }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "creator", type: "address" }],
+    name: "getCollectionsByCreator",
+    outputs: [{
+      internalType: "struct NFTFactoryLens.CollectionInfo[]",
+      name: "infos",
+      type: "tuple[]",
+      components: COLLECTION_INFO_COMPONENTS,
+    }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "offset", type: "uint256" },
+      { internalType: "uint256", name: "limit", type: "uint256" },
+    ],
+    name: "getAllCollections",
+    outputs: [{
+      internalType: "struct NFTFactoryLens.CollectionInfo[]",
+      name: "infos",
+      type: "tuple[]",
+      components: COLLECTION_INFO_COMPONENTS,
+    }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+// ---------------------------------------------------------------------------
 // Aliases
 // ---------------------------------------------------------------------------
 
 export const LaunchpadPresaleContract = PresaleContract;
 export const AirdropMultisenderContract = AirdropMultiSender;
 export const NFTFactoryContract = NFTFactory;
+export const NFTFactoryLensContract = NFTFactoryLens;
 export const PresaleFactoryContract = PresaleFactory;

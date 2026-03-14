@@ -36,7 +36,7 @@ const itemVariants = {
 
 const AdminDashboard: React.FC = () => {
   const { address } = useAccount();
-  const { presaleFactory, explorerUrl } = useChainContracts();
+  const { presaleFactory, nftFactory, nftFactoryLens, explorerUrl } = useChainContracts();
   const { factoryOwner, isLoading: isLoadingOwner } = useFactoryOwner();
   const {
     feeRecipient,
@@ -230,6 +230,50 @@ const AdminDashboard: React.FC = () => {
               </div>
               <a
                 href={`${explorerUrl}/address/${presaleFactory}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-body-sm text-accent link-underline inline-flex items-center gap-1 mt-1"
+              >
+                View on explorer
+              </a>
+            </div>
+
+            <div>
+              <p className="text-body-sm text-ink-muted">NFT Factory</p>
+              <div className="flex items-center gap-2">
+                <code className="text-body-sm font-mono text-ink break-all">{nftFactory}</code>
+                <button
+                  onClick={() => handleCopy(nftFactory)}
+                  className="p-1.5 rounded-lg hover:bg-ink/5 transition-colors"
+                  aria-label="Copy NFT factory address"
+                >
+                  <Copy className="w-4 h-4 text-ink-muted" />
+                </button>
+              </div>
+              <a
+                href={`${explorerUrl}/address/${nftFactory}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-body-sm text-accent link-underline inline-flex items-center gap-1 mt-1"
+              >
+                View on explorer
+              </a>
+            </div>
+
+            <div>
+              <p className="text-body-sm text-ink-muted">NFT Factory Lens</p>
+              <div className="flex items-center gap-2">
+                <code className="text-body-sm font-mono text-ink break-all">{nftFactoryLens}</code>
+                <button
+                  onClick={() => handleCopy(nftFactoryLens)}
+                  className="p-1.5 rounded-lg hover:bg-ink/5 transition-colors"
+                  aria-label="Copy NFT factory lens address"
+                >
+                  <Copy className="w-4 h-4 text-ink-muted" />
+                </button>
+              </div>
+              <a
+                href={`${explorerUrl}/address/${nftFactoryLens}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-body-sm text-accent link-underline inline-flex items-center gap-1 mt-1"

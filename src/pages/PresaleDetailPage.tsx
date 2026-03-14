@@ -155,6 +155,7 @@ const PresaleDetailPage: React.FC = () => {
   const {
     depositSaleTokens,
     finalize,
+    enableClaims,
     cancelPresale,
     withdrawProceeds,
     isPending: isOwnerActionPending,
@@ -423,21 +424,40 @@ const PresaleDetailPage: React.FC = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => presaleAddress && finalize(presaleAddress)}
-                  disabled={isOwnerActionPending || isOwnerActionConfirming}
+                  disabled={
+                    isOwnerActionPending ||
+                    isOwnerActionConfirming ||
+                    Boolean(presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
+                  }
                   className="btn-primary"
                 >
                   Finalize
                 </button>
                 <button
+                  onClick={() => presaleAddress && enableClaims(presaleAddress)}
+                  disabled={
+                    isOwnerActionPending ||
+                    isOwnerActionConfirming ||
+                    Boolean(!presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
+                  }
+                  className="btn-secondary"
+                >
+                  Enable Claims
+                </button>
+                <button
                   onClick={() => presaleAddress && cancelPresale(presaleAddress)}
-                  disabled={isOwnerActionPending || isOwnerActionConfirming}
+                  disabled={
+                    isOwnerActionPending ||
+                    isOwnerActionConfirming ||
+                    Boolean(presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
+                  }
                   className="btn-secondary text-red-600 border-red-200 hover:bg-red-50"
                 >
                   Cancel Presale
                 </button>
                 <button
                   onClick={() => presaleAddress && withdrawProceeds(presaleAddress)}
-                  disabled={isOwnerActionPending || isOwnerActionConfirming}
+                  disabled={isOwnerActionPending || isOwnerActionConfirming || !presale.claimEnabled}
                   className="btn-secondary"
                 >
                   Withdraw Proceeds

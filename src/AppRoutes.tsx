@@ -10,7 +10,10 @@ import PresalesPage from './pages/PresalesPage';
 import PresaleDetailPage from './pages/PresaleDetailPage';
 import ManagePresalePage from './pages/ManagePresalePage';
 import CreateTokenPage from './pages/CreateTokenPage';
+import CreateNFTPage from './pages/CreateNFTPage';
 import CreatePresalePage from './pages/CreatePresalePage';
+import ManageNFTPage from './pages/ManageNFTPage';
+import NFTDetailPage from './pages/NFTDetailPage';
 import TokenLockerPage from './pages/TokenLockerPage';
 import LockDetailPage from './pages/LockDetailPage';
 import AirdropPage from './pages/AirdropPage';
@@ -21,6 +24,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPresalesPage from './pages/admin/AdminPresalesPage';
 import AdminWhitelistPage from './pages/admin/AdminWhitelistPage';
 import TokensPage from './pages/TokensPage';
+import MyNFTsPage from './pages/MyNFTsPage';
 
 type AppRoutesProps = {
   themeMode: 'dark' | 'light';
@@ -35,12 +39,15 @@ const AppRoutes = ({ themeMode, onToggleTheme }: AppRoutesProps) => {
         <Route path="/" element={<HomePage />} />
         <Route path="/presales" element={<PresalesPage />} />
         <Route path="/presales/:address" element={<PresaleDetailPage />} />
+        <Route path="/nfts/:address" element={<NFTDetailPage />} />
 
         {/* Private routes */}
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/presales/manage/:address" element={<ManagePresalePage />} />
           <Route path="/create/token" element={<CreateTokenPage />} />
+          <Route path="/create/nft" element={<CreateNFTPage />} />
+          <Route path="/nfts/manage/:address" element={<ManageNFTPage />} />
           <Route path="/create/presale" element={<CreatePresalePage />} />
           <Route path="/tools/token-locker" element={<TokenLockerPage />} />
           <Route path="/locks/:id" element={<LockDetailPage />} />
@@ -49,6 +56,7 @@ const AppRoutes = ({ themeMode, onToggleTheme }: AppRoutesProps) => {
           <Route path="/staking" element={<Staking />} />
           <Route path="/project/:id" element={<ProjectPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/my-nfts" element={<MyNFTsPage />} />
         </Route>
 
         {/* Admin routes */}

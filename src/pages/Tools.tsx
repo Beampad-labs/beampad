@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Lock, Sliders, Send, ArrowRight } from 'lucide-react';
+import { DollarSign, Lock, Sliders, Send, Image, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const containerVariants = {
@@ -55,6 +55,16 @@ const tools = [
     description: 'Launch a presale for your token to raise funds from the community.',
     icon: Sliders,
     href: '/create/presale',
+    bgColor: 'bg-canvas-alt',
+    textColor: 'text-ink',
+    iconBg: 'bg-ink/10',
+  },
+  {
+    id: 'createNft',
+    title: 'Create an NFT',
+    description: 'Deploy ERC721 or ERC721A NFT collections with mint settings.',
+    icon: Image,
+    href: '/create/nft',
     bgColor: 'bg-canvas-alt',
     textColor: 'text-ink',
     iconBg: 'bg-ink/10',

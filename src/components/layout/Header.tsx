@@ -48,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ themeMode, onToggleTheme }) => {
   const privateNavItems = [
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/presales', label: 'Launchpad' },
+    { path: '/my-nfts', label: 'My NFTs' },
     { path: '/tools', label: 'Tools' },
     { path: '/staking', label: 'Staking' },
   ];
