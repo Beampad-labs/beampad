@@ -7,10 +7,15 @@ import { NFTFactory, getContractAddresses, getExplorerUrl, getNativeTokenLabel }
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock3,
+  Coins,
   ExternalLink,
   Image,
   Layers,
   Loader2,
+  Shield,
+  Tag,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
@@ -633,24 +638,28 @@ const CreateNFTPage: React.FC = () => {
 
             <div className="space-y-3">
               {[
-                { label: 'Collection', value: name.trim() || 'Untitled Collection' },
-                { label: 'Symbol', value: symbol.trim() || '--' },
-                { label: 'Supply', value: maxSupply.trim() || '--' },
-                { label: 'Wallet limit', value: walletLimitLabel },
-                { label: 'Public price', value: mintPrice.trim() ? `${mintPrice.trim()} ${nativeToken}` : '--' },
+                { label: 'Collection', value: name.trim() || 'Untitled Collection', icon: Image },
+                { label: 'Symbol', value: symbol.trim() || '--', icon: Tag },
+                { label: 'Supply', value: maxSupply.trim() || '--', icon: Layers },
+                { label: 'Wallet limit', value: walletLimitLabel, icon: Wallet },
+                { label: 'Public price', value: mintPrice.trim() ? `${mintPrice.trim()} ${nativeToken}` : '--', icon: Coins },
                 {
                   label: 'Whitelist price',
                   value:
                     whitelistEnabled
                       ? (whitelistPrice.trim() ? `${whitelistPrice.trim()} ${nativeToken}` : '--')
                       : 'Disabled',
+                  icon: Shield,
                 },
-                { label: 'Whitelist opens', value: whitelistEnabled ? formatPreviewDate(whitelistStart) : 'Disabled' },
-                { label: 'Public opens', value: formatPreviewDate(saleStart) },
-                { label: 'Sale closes', value: formatPreviewDate(saleEnd) },
+                { label: 'Whitelist opens', value: whitelistEnabled ? formatPreviewDate(whitelistStart) : 'Disabled', icon: Clock3 },
+                { label: 'Public opens', value: formatPreviewDate(saleStart), icon: Clock3 },
+                { label: 'Sale closes', value: formatPreviewDate(saleEnd), icon: Clock3 },
               ].map((item) => (
                 <div key={item.label} className="flex items-start justify-between gap-4 text-body-sm">
-                  <span className="text-ink-muted">{item.label}</span>
+                  <span className="inline-flex items-center gap-2 text-ink-muted">
+                    <item.icon className="w-4 h-4 text-accent/80" />
+                    {item.label}
+                  </span>
                   <span className="text-right font-medium text-ink">{item.value}</span>
                 </div>
               ))}

@@ -39,9 +39,9 @@ export default {
         'status-error-bg': 'rgb(var(--color-status-error) / 0.16)',
       },
       fontFamily: {
-        display: ['"JetBrains Mono"', 'monospace'],
-        sans: ['"Space Mono"', '"JetBrains Mono"', 'monospace'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: ['"Space Grotesk"', 'sans-serif'],
+        sans: ['"Work Sans"', '"Space Grotesk"', 'sans-serif'],
+        mono: ['"Inconsolata"', 'monospace'],
       },
       fontSize: {
         'display-xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '400' }],

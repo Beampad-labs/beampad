@@ -14,6 +14,7 @@ import { useChainId } from 'wagmi';
 import {
   Clock,
   CheckCircle2,
+  Coins,
   XCircle,
   Loader2,
   Search,
@@ -55,9 +56,9 @@ const tabs: { label: string; value: TabFilter }[] = [
 ];
 
 const launchTypeTabs: { label: string; value: LaunchTypeFilter }[] = [
-  { label: 'All Launches', value: 'all' },
+  { label: 'All', value: 'all' },
   { label: 'Token Presales', value: 'token' },
-  { label: 'NFT Deployments', value: 'nft' },
+  { label: 'NFT Drops', value: 'nft' },
 ];
 
 function getStatusBadge(status: string) {
@@ -220,7 +221,7 @@ const PresalesPage: React.FC = () => {
               {activeLaunchType === 'token'
                 ? 'No token presales match this filter.'
                 : activeLaunchType === 'nft'
-                ? 'No NFT deployments match this filter.'
+                ? 'No NFT drops match this filter.'
                 : 'No token or NFT launches match the current filters.'}
             </p>
           </div>
@@ -395,12 +396,18 @@ const PresalesPage: React.FC = () => {
 
                         <div className="rounded-2xl bg-accent/5 border border-accent/10 px-3 py-2 text-body-sm space-y-1.5">
                           <div className="flex justify-between gap-4">
-                            <span className="text-ink-muted">Public Price</span>
+                            <span className="inline-flex items-center gap-1.5 text-ink-muted">
+                              <Coins className="w-3.5 h-3.5" />
+                              Public Price
+                            </span>
                             <span className="font-medium text-ink">{formatEther(deployment.mintPrice)} {nativeToken}</span>
                           </div>
                           {deployment.whitelistEnabled && (
                             <div className="flex justify-between gap-4">
-                              <span className="text-ink-muted">Whitelist Price</span>
+                              <span className="inline-flex items-center gap-1.5 text-ink-muted">
+                                <Shield className="w-3.5 h-3.5" />
+                                Whitelist Price
+                              </span>
                               <span className="font-medium text-ink">
                                 {formatEther(deployment.whitelistPrice)} {nativeToken}
                               </span>

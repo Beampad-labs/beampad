@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&family=Inconsolata:wght@200..900&family=Lora:ital,wght@0,400..700;1,400..700&family=Space+Grotesk:wght@300..700&family=Work+Sans:ital,wght@0,100..900;1,100..900&family=Zalando+Sans+SemiExpanded:ital,wght@0,200..900;1,200..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -325,7 +325,7 @@
   --rk-colors-accentColor: rgb(var(--color-accent)) !important;
   --rk-colors-accentColorForeground: rgb(var(--color-accent-foreground)) !important;
   --rk-radii-connectButton: 9999px !important;
-  --rk-fonts-body: 'Space Mono', 'JetBrains Mono', monospace !important;
+  --rk-fonts-body: 'Work Sans', 'Space Grotesk', sans-serif !important;
 }
 
 @layer components {

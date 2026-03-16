@@ -24,10 +24,10 @@ import {
   Loader2,
   ExternalLink,
   Coins,
-  Target,
   Users,
   Calendar,
-  Info,
+  TrendingUp,
+  Wallet,
   AlertTriangle,
   Shield,
 } from 'lucide-react';
@@ -310,27 +310,27 @@ const PresaleDetailPage: React.FC = () => {
                 {
                   label: 'Rate',
                   value: presale.rate ? `${presale.rate.toString()} tokens per 100 payment` : '--',
-                  icon: Target,
+                  icon: TrendingUp,
                 },
                 {
                   label: 'Hard Cap',
                   value: `${formatUnits(presale.hardCap ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
-                  icon: Target,
+                  icon: Coins,
                 },
                 {
                   label: 'Soft Cap',
                   value: `${formatUnits(presale.softCap ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
-                  icon: Target,
+                  icon: Coins,
                 },
                 {
                   label: 'Min Contribution',
                   value: `${formatUnits(presale.minContribution ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
-                  icon: Info,
+                  icon: Wallet,
                 },
                 {
                   label: 'Max Contribution',
                   value: `${formatUnits(presale.maxContribution ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
-                  icon: Info,
+                  icon: Wallet,
                 },
                 {
                   label: 'Start Time',

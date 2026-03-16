@@ -14,12 +14,13 @@ import {
   ArrowLeft,
   Clock,
   CheckCircle2,
+  Coins,
   ExternalLink,
   Image,
   Loader2,
   Shield,
   Users,
-  Layers,
+  Wallet,
 } from 'lucide-react';
 import { NFTCollectionContract, NFT_COLLECTION_IMAGES, getExplorerUrl, getNativeTokenLabel } from '@/config';
 import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
@@ -724,12 +725,12 @@ const NFTDetailPage: React.FC = () => {
               {
                 label: 'Public Price',
                 value: `${formatEther(collection.mintPrice)} ${nativeToken}`,
-                icon: Layers,
+                icon: Coins,
               },
               {
                 label: 'Whitelist Price',
                 value: collection.whitelistEnabled ? `${formatEther(collection.whitelistPrice)} ${nativeToken}` : 'Disabled',
-                icon: Shield,
+                icon: Coins,
               },
               {
                 label: 'Whitelist Start',
@@ -752,7 +753,7 @@ const NFTDetailPage: React.FC = () => {
               {
                 label: 'Wallet Limit',
                 value: collection.walletLimit === 0 ? 'Unlimited' : collection.walletLimit.toString(),
-                icon: Users,
+                icon: Wallet,
               },
             ].map((item) => (
               <div key={item.label} className="flex items-start gap-3 p-3 rounded-2xl bg-ink/[0.02]">
