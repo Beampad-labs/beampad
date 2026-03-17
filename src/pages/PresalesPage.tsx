@@ -56,7 +56,6 @@ const tabs: { label: string; value: TabFilter }[] = [
 ];
 
 const launchTypeTabs: { label: string; value: LaunchTypeFilter }[] = [
-  { label: 'All', value: 'all' },
   { label: 'Token Presales', value: 'token' },
   { label: 'NFT Drops', value: 'nft' },
 ];
@@ -148,8 +147,9 @@ const PresalesPage: React.FC = () => {
     return nftDeployments.filter((deployment) => deployment.status === activeTab);
   }, [activeTab, nftDeployments]);
 
-  const showTokenLaunches = activeLaunchType !== 'nft';
-  const showNFTLaunches = activeLaunchType !== 'token';
+  const showAllLaunchTypes = activeTab === 'all' || activeLaunchType === 'all';
+  const showTokenLaunches = showAllLaunchTypes || activeLaunchType === 'token';
+  const showNFTLaunches = showAllLaunchTypes || activeLaunchType === 'nft';
   const visiblePresales = showTokenLaunches ? presales : [];
   const visibleNFTDeployments = showNFTLaunches ? filteredNFTDeployments : [];
   const isLoading = (showTokenLaunches && isPresalesLoading) || (showNFTLaunches && isNFTLoading);
