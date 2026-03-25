@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, Zap, Loader2 } from 'lucide-react';
 import { useAccount, useChainId, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatUnits, parseUnits, maxUint256 } from 'viem';
-import { StakingContract, erc20Abi, getStakingContractAddress, getNativeTokenLabel } from '@/config';
+import { StakingContract, erc20Abi, getStakingContractAddress, getStakingTokenLabel } from '@/config';
 import { toast } from 'sonner';
 import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
 
@@ -30,7 +30,7 @@ const Staking: React.FC = () => {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const stakingAddress = getStakingContractAddress(chainId);
-  const tokenLabel = getNativeTokenLabel(chainId);
+  const tokenLabel = getStakingTokenLabel(chainId);
 
   // Read staking token address
   const { data: stakingTokenData } = useReadContracts({

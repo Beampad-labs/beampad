@@ -19,13 +19,14 @@ export function useUserTokens(forceRefetch = false) {
     getImportedTokens,
   } = useBlockchainStore();
 
-  const cachedTokens = address ? getUserTokens(address) : null;
+  const cachedTokens = address ? getUserTokens(chainId, address) : null;
   const importedTokens = address ? getImportedTokens(address, chainId) : [];
   const shouldFetch = Boolean(address && tokenFactory && tokenFactory !== '0x0000000000000000000000000000000000000000');
 
   const { data: tokens, isLoading, refetch } = useReadContract({
     abi: TokenFactory,
     address: tokenFactory,
+    chainId,
     functionName: 'tokensCreatedBy',
     args: [address as `0x${string}`],
     query: {
@@ -38,17 +39,17 @@ export function useUserTokens(forceRefetch = false) {
 
   useEffect(() => {
     if (address && isLoading) {
-      setUserTokensLoading(address, true);
+      setUserTokensLoading(chainId, address, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, isLoading]);
+  }, [address, chainId, isLoading]);
 
   useEffect(() => {
     if (address && tokens && !isLoading) {
-      setUserTokens(address, tokens as `0x${string}`[]);
+      setUserTokens(chainId, address, tokens as `0x${string}`[]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, tokens, isLoading]);
+  }, [address, chainId, tokens, isLoading]);
 
   useEffect(() => {
     if (forceRefetch && address) {
@@ -58,7 +59,7 @@ export function useUserTokens(forceRefetch = false) {
 
   const handleRefetch = async () => {
     if (address) {
-      setUserTokensLoading(address, true);
+      setUserTokensLoading(chainId, address, true);
       await refetch();
     }
   };

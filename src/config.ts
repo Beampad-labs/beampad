@@ -50,6 +50,7 @@ export const config = createConfig({
 // ---------------------------------------------------------------------------
 
 export const OWNER: Address = "0x4C3Af86D9F5B8bDeB0fD211E9ed4590d709CaA71" as Address;
+export const DOCUMENTATION_URL = "https://beampad.gitbook.io/docs";
 
 // ---------------------------------------------------------------------------
 // Contract address map
@@ -68,20 +69,20 @@ const ZERO: Address = "0x0000000000000000000000000000000000000000";
 
 export const CONTRACT_ADDRESSES: Record<number, ContractAddressMap> = {
   [beam.id]: {
-    tokenLocker: ZERO,
-    nftFactory: ZERO,
-    nftFactoryLens: ZERO,
-    presaleFactory: ZERO,
-    tokenFactory: ZERO,
-    airdropMultisender: ZERO,
+    tokenLocker: "0x153A2142D68EE6Bd2a4Cd63b46C0f60aeC34cc14",
+    nftFactory: "0x83FAF9a7b7A33fF761011B40dC2Ec54a079c2459",
+    nftFactoryLens: "0x40bfd48521cdaa3EA460917e053738765063745D",
+    presaleFactory: "0xc73290EC0D30c793250D50d2Ec1BCFa36e2B00c8",
+    tokenFactory: "0x81850e53DEc753b95DE4599173755bc640575c3D",
+    airdropMultisender: "0xBA3a598a13CE439bfed5b18B405E9e45Ef2A1336",
   },
   [beamTestnet.id]: {
-    tokenLocker: "0x81850e53dec753b95de4599173755bc640575c3d",
+    tokenLocker: "0x81850e53DEc753b95DE4599173755bc640575c3D",
     nftFactory: "0xDD3d8e4Dddab003B42a3a865E6FA3bBDDe6d23c1",
     nftFactoryLens: "0x33f7ed76Ec583fdd2727Fc2Db8D7FD107e04121a",
     presaleFactory: "0x23B09983E7F4A13b4DB40661C8F45580C692B262",
-    tokenFactory: "0xc73290ec0d30c793250d50d2ec1bcfa36e2b00c8",
-    airdropMultisender: "0x153a2142d68ee6bd2a4cd63b46c0f60aec34cc14",
+    tokenFactory: "0xc73290EC0D30c793250D50d2Ec1BCFa36e2B00c8",
+    airdropMultisender: "0x153A2142D68EE6Bd2a4Cd63b46C0f60aeC34cc14",
   },
 };
 
@@ -121,6 +122,11 @@ export const NATIVE_TOKEN_LABELS: Record<number, string> = {
   [beamTestnet.id]: "BEAM",
 };
 
+export const STAKING_TOKEN_LABELS: Record<number, string> = {
+  [beam.id]: "BeamPad",
+  [beamTestnet.id]: "BeamPad",
+};
+
 // ---------------------------------------------------------------------------
 // Helper functions (default to Beam mainnet)
 // ---------------------------------------------------------------------------
@@ -139,6 +145,10 @@ export function getExplorerUrl(chainId?: number): string {
 
 export function getNativeTokenLabel(chainId?: number): string {
   return NATIVE_TOKEN_LABELS[chainId ?? beam.id] ?? NATIVE_TOKEN_LABELS[beam.id];
+}
+
+export function getStakingTokenLabel(chainId?: number): string {
+  return STAKING_TOKEN_LABELS[chainId ?? beam.id] ?? STAKING_TOKEN_LABELS[beam.id];
 }
 
 // ===========================================================================

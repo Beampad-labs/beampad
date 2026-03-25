@@ -215,14 +215,14 @@ const CreateTokenPage: React.FC = () => {
     setShowSuccessModal(true);
 
     if (userAddress) {
-      const existing = getUserTokens(userAddress) ?? [];
+      const existing = getUserTokens(chainId, userAddress) ?? [];
       if (createdTokenAddress && !existing.some((addr) => addr.toLowerCase() === createdTokenAddress.toLowerCase())) {
-        setUserTokens(userAddress, [createdTokenAddress as Address, ...existing]);
+        setUserTokens(chainId, userAddress, [createdTokenAddress as Address, ...existing]);
       }
     }
 
     hasHandledSuccess.current = true;
-  }, [isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
+  }, [chainId, isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
 
   useEffect(() => {
     if (writeError) {
@@ -246,11 +246,11 @@ const CreateTokenPage: React.FC = () => {
 
   useEffect(() => {
     if (!isSuccess || !createdTokenAddress || !userAddress) return;
-    const existing = getUserTokens(userAddress) ?? [];
+    const existing = getUserTokens(chainId, userAddress) ?? [];
     if (!existing.some((addr) => addr.toLowerCase() === createdTokenAddress.toLowerCase())) {
-      setUserTokens(userAddress, [createdTokenAddress as Address, ...existing]);
+      setUserTokens(chainId, userAddress, [createdTokenAddress as Address, ...existing]);
     }
-  }, [isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
+  }, [chainId, isSuccess, createdTokenAddress, userAddress, getUserTokens, setUserTokens]);
 
   const handleSubmit = () => {
     if (!name || !symbol || !initialSupply || !recipient) return;

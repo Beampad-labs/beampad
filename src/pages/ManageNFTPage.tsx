@@ -325,7 +325,7 @@ const ManageNFTPage: React.FC = () => {
         <motion.div variants={itemVariants} className="glass-card rounded-3xl p-8 text-center space-y-4">
           <h1 className="font-display text-display-md text-ink">Failed to Load Collection</h1>
           <p className="text-body text-ink-muted">
-            Could not fetch data for this collection. Ensure the address is correct and your wallet is on Beam Testnet.
+            Could not fetch data for this collection. Ensure the address is correct and your wallet is on the Beam network.
           </p>
           {collectionReadError && (
             <p className="text-body-sm text-status-error">

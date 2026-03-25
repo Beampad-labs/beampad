@@ -12,10 +12,15 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/rpc': {
+      '/api/rpc/mainnet': {
         target: 'https://build.onbeam.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/rpc/, '/rpc'),
+        rewrite: () => '/rpc',
+      },
+      '/api/rpc/testnet': {
+        target: 'https://build.onbeam.com',
+        changeOrigin: true,
+        rewrite: () => '/rpc/testnet',
       },
     },
   },

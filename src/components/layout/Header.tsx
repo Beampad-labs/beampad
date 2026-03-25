@@ -36,11 +36,6 @@ const Header: React.FC<HeaderProps> = ({ themeMode, onToggleTheme }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-
   const publicNavItems = [
     { path: '/presales', label: 'Launchpad' },
   ];
@@ -361,6 +356,7 @@ const Header: React.FC<HeaderProps> = ({ themeMode, onToggleTheme }) => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
                   className={`block px-4 py-3 rounded-xl text-body font-medium transition-colors duration-200 ${
                     location.pathname === item.path
                       ? 'bg-canvas-alt text-ink'

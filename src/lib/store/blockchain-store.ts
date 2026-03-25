@@ -43,10 +43,10 @@ interface BlockchainStore {
   };
 
   // Actions for User Tokens
-  setUserTokens: (address: string, tokens: Address[]) => void;
-  setUserTokensLoading: (address: string, isLoading: boolean) => void;
-  getUserTokens: (address: string) => Address[] | null;
-  isUserTokensStale: (address: string, maxAge?: number) => boolean;
+  setUserTokens: (chainId: number, address: string, tokens: Address[]) => void;
+  setUserTokensLoading: (chainId: number, address: string, isLoading: boolean) => void;
+  getUserTokens: (chainId: number, address: string) => Address[] | null;
+  isUserTokensStale: (chainId: number, address: string, maxAge?: number) => boolean;
 
   // Actions for Imported Tokens
   addImportedToken: (userAddress: string, chainId: number, tokenAddress: Address) => void;
@@ -74,6 +74,7 @@ interface BlockchainStore {
 }
 
 const DEFAULT_CACHE_TIME = 5 * 60 * 1000; // 5 minutes
+const getChainScopedKey = (chainId: number, address: string) => `${chainId}:${address.toLowerCase()}`;
 
 export const useBlockchainStore = create<BlockchainStore>()(
   persist(
@@ -88,38 +89,40 @@ export const useBlockchainStore = create<BlockchainStore>()(
       },
 
       // User Tokens Actions
-      setUserTokens: (address, tokens) =>
+      setUserTokens: (chainId, address, tokens) =>
         set((state) => ({
           userTokens: {
             ...state.userTokens,
-            [address.toLowerCase()]: {
+            [getChainScopedKey(chainId, address)]: {
               tokens,
               metadata: { timestamp: Date.now(), isLoading: false },
             },
           },
         })),
 
-      setUserTokensLoading: (address, isLoading) =>
-        set((state) => ({
+      setUserTokensLoading: (chainId, address, isLoading) =>
+        set((state) => {
+          const key = getChainScopedKey(chainId, address);
+          return ({
           userTokens: {
             ...state.userTokens,
-            [address.toLowerCase()]: {
-              tokens: state.userTokens[address.toLowerCase()]?.tokens || [],
+            [key]: {
+              tokens: state.userTokens[key]?.tokens || [],
               metadata: {
-                timestamp: state.userTokens[address.toLowerCase()]?.metadata.timestamp || 0,
+                timestamp: state.userTokens[key]?.metadata.timestamp || 0,
                 isLoading,
               },
             },
           },
-        })),
+        })}),
 
-      getUserTokens: (address) => {
-        const cached = get().userTokens[address.toLowerCase()];
+      getUserTokens: (chainId, address) => {
+        const cached = get().userTokens[getChainScopedKey(chainId, address)];
         return cached ? cached.tokens : null;
       },
 
-      isUserTokensStale: (address, maxAge = DEFAULT_CACHE_TIME) => {
-        const cached = get().userTokens[address.toLowerCase()];
+      isUserTokensStale: (chainId, address, maxAge = DEFAULT_CACHE_TIME) => {
+        const cached = get().userTokens[getChainScopedKey(chainId, address)];
         if (!cached) return true;
         return Date.now() - cached.metadata.timestamp > maxAge;
       },
@@ -281,7 +284,9 @@ export const useBlockchainStore = create<BlockchainStore>()(
 
       clearUserCache: (address) =>
         set((state) => {
-          const { [address.toLowerCase()]: _, ...restTokens } = state.userTokens;
+          const restTokens = Object.fromEntries(
+            Object.entries(state.userTokens).filter(([key]) => !key.endsWith(`:${address.toLowerCase()}`))
+          );
           const { [address.toLowerCase()]: __, ...restLocks } = state.userLocks;
           return {
             userTokens: restTokens,

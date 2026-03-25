@@ -1,4 +1,6 @@
 import React from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -9,6 +11,9 @@ type LayoutProps = {
 };
 
 const Layout: React.FC<LayoutProps> = ({ children, themeMode, onToggleTheme }) => {
+  const location = useLocation();
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="relative flex flex-col min-h-screen bg-canvas">
       {/* Subtle noise texture overlay */}
@@ -26,7 +31,17 @@ const Layout: React.FC<LayoutProps> = ({ children, themeMode, onToggleTheme }) =
 
       <main className="relative flex-grow">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 lg:py-16">
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 

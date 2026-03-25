@@ -11,6 +11,7 @@ import {
   erc20Abi,
   getNativeTokenLabel,
   getStakingContractAddress,
+  getStakingTokenLabel,
 } from '@/config';
 import { useLaunchpadPresales } from '@/lib/hooks/useLaunchpadPresales';
 import { useUserTokens } from '@/lib/hooks/useUserTokens';
@@ -54,6 +55,7 @@ const Dashboard: React.FC = () => {
   const safeAddress = (address ?? ZERO_ADDRESS) as Address;
   const chainId = useChainId();
   const nativeToken = getNativeTokenLabel(chainId);
+  const stakingTokenLabel = getStakingTokenLabel(chainId);
   const stakingAddress = getStakingContractAddress(chainId);
 
   const { data: balance, isLoading: isBalanceLoading } = useBalance({
@@ -89,7 +91,7 @@ const Dashboard: React.FC = () => {
     },
   });
 
-  const stakingSymbol = (stakingData?.[0]?.result as string | undefined) ?? nativeToken;
+  const stakingSymbol = (stakingData?.[0]?.result as string | undefined) ?? stakingTokenLabel;
   const stakingDecimalsRaw = stakingData?.[1]?.result as number | bigint | undefined;
   const stakingDecimals = typeof stakingDecimalsRaw === 'number'
     ? stakingDecimalsRaw
@@ -176,7 +178,10 @@ const Dashboard: React.FC = () => {
 
   const createdPresales = useMemo(() => {
     if (!address) return [];
-    return presales.filter((presale) => presale.owner.toLowerCase() === address.toLowerCase());
+    const ownerAddress = address.toLowerCase();
+    return presales.filter((presale) => {
+      return typeof presale.owner === 'string' && presale.owner.toLowerCase() === ownerAddress;
+    });
   }, [address, presales]);
 
   const balanceDisplay = balance

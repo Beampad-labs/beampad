@@ -126,11 +126,13 @@ export function useLaunchpadPresales(filter: LaunchpadPresaleFilter = 'all', for
 
   // Extract addresses from results
   const presaleAddresses = useMemo(() => {
+    if (!shouldFetchAddresses) return [];
+    if (totalPresales === 0n) return [];
     if (!addressResults) return cachedAddresses || [];
     return addressResults
       .map((r) => r.result as Address | undefined)
       .filter((addr): addr is Address => !!addr);
-  }, [addressResults, cachedAddresses]);
+  }, [addressResults, cachedAddresses, shouldFetchAddresses, totalPresales]);
 
   const unknownWhitelistCount = useMemo(() => {
     if (!presaleAddresses || presaleAddresses.length === 0) return 0;
@@ -163,6 +165,12 @@ export function useLaunchpadPresales(filter: LaunchpadPresaleFilter = 'all', for
 
   // Update cache when addresses are fetched
   useEffect(() => {
+    if (shouldFetchAddresses && totalPresales === 0n && !isLoadingTotal) {
+      setPresaleAddresses([]);
+      setPresaleAddressesLoading(false);
+      return;
+    }
+
     if (presaleAddresses.length > 0 && !isLoadingAddresses && addressResults) {
       // Only update if we have new data from the blockchain
       const currentCache = getPresaleAddresses();
@@ -175,7 +183,7 @@ export function useLaunchpadPresales(filter: LaunchpadPresaleFilter = 'all', for
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressResults, isLoadingAddresses]);
+  }, [addressResults, isLoadingAddresses, isLoadingTotal, presaleAddresses, shouldFetchAddresses, totalPresales]);
 
   useEffect(() => {
     if (shouldFetchAddresses && (isLoadingTotal || isLoadingAddresses)) {

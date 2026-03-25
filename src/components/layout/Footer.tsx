@@ -2,15 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import beampadLogo from '@/assets/Beampad-logo.jpg';
+import { DOCUMENTATION_URL } from '@/config';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-
-  const footerLinks = [
-    { label: 'Documentation', href: '#' },
-    { label: 'Terms', href: '#' },
-    { label: 'Privacy', href: '#' },
-  ];
 
   const socialLinks = [
     {
@@ -49,17 +44,14 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-8">
-            {footerLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="text-body-sm text-ink-muted hover:text-ink transition-colors duration-300 link-underline"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
+          <a
+            href={DOCUMENTATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-body-sm text-ink-muted hover:text-ink transition-colors duration-300 link-underline"
+          >
+            Documentation
+          </a>
 
           {/* Social */}
           <div className="flex items-center gap-4">

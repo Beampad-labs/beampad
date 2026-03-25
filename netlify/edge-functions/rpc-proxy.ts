@@ -1,5 +1,5 @@
 const RPC_URLS: Record<string, string> = {
-  mainnet: "https://build.onbeam.com/rpc/mainnet",
+  mainnet: "https://build.onbeam.com/rpc",
   testnet: "https://build.onbeam.com/rpc/testnet",
 };
 
