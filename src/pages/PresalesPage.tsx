@@ -5,11 +5,12 @@ import {
   useLaunchpadPresales,
   type LaunchpadPresaleFilter,
 } from '@/lib/hooks/useLaunchpadPresales';
-import { formatEther, formatUnits } from 'viem';
+import { formatEther } from 'viem';
 import { NFT_COLLECTION_IMAGES, getNativeTokenLabel } from '@/config';
 import { useNFTDeployments } from '@/lib/hooks/useNFTDeployments';
 import PhaseCountdown from '@/components/ui/PhaseCountdown';
 import { resolveNFTSaleCountdown } from '@/lib/utils/nft-sales';
+import { formatPresaleAmount } from '@/lib/utils/presale';
 import { useChainId } from 'wagmi';
 import {
   Clock,
@@ -64,14 +65,14 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'live':
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-status-live-bg text-status-live">
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold bg-status-live-bg text-status-live">
           <span className="w-1.5 h-1.5 rounded-full bg-status-live animate-pulse" />
           Live
         </span>
       );
     case 'upcoming':
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-status-upcoming-bg text-status-upcoming">
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold bg-status-upcoming-bg text-status-upcoming">
           <Clock className="w-3 h-3" />
           Upcoming
         </span>
@@ -79,14 +80,14 @@ function getStatusBadge(status: string) {
     case 'ended':
     case 'finalized':
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-status-closed-bg text-status-closed">
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold bg-status-closed-bg text-status-closed">
           <CheckCircle2 className="w-3 h-3" />
           Ended
         </span>
       );
     case 'cancelled':
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-status-error-bg text-status-error">
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold bg-status-error-bg text-status-error">
           <XCircle className="w-3 h-3" />
           Cancelled
         </span>
@@ -267,7 +268,7 @@ const PresalesPage: React.FC = () => {
                         <p className="text-ink-muted">Raised</p>
                         <p className="text-ink font-medium">
                           {presale.totalRaised
-                            ? formatUnits(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
+                            ? formatPresaleAmount(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
                             : '0'}{' '}
                           {presale.paymentTokenSymbol || ''}
                         </p>
@@ -276,7 +277,7 @@ const PresalesPage: React.FC = () => {
                         <p className="text-ink-muted">Hard Cap</p>
                         <p className="text-ink font-medium">
                           {presale.hardCap
-                            ? formatUnits(presale.hardCap, presale.paymentTokenDecimals ?? 18)
+                            ? formatPresaleAmount(presale.hardCap, presale.paymentTokenDecimals ?? 18)
                             : '0'}{' '}
                           {presale.paymentTokenSymbol || ''}
                         </p>
@@ -350,7 +351,7 @@ const PresalesPage: React.FC = () => {
                             </p>
                           </div>
                           {deployment.status === 'live' && deployment.salePhase === 'whitelist' ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-accent/10 text-accent whitespace-nowrap shrink-0 self-start">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold bg-accent/10 text-accent whitespace-nowrap shrink-0 self-start">
                               <Shield className="w-3 h-3" />
                               Whitelist Live
                             </span>

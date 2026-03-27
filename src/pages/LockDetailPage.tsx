@@ -236,7 +236,7 @@ const LockDetailPage: React.FC = () => {
               <p className="text-body text-ink-muted">{lock.description}</p>
             )}
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          <span className={`rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold ${
             lock.withdrawn
               ? 'bg-ink/10 text-ink-muted'
               : unlockable

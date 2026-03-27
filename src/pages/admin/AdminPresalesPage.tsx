@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount, useReadContract } from 'wagmi';
-import { formatUnits, type Address } from 'viem';
+import { type Address } from 'viem';
 import { toast } from 'sonner';
 import { ArrowLeft, ExternalLink, RefreshCcw } from 'lucide-react';
 import { LaunchpadPresaleContract } from '@/config';
 import { useLaunchpadPresales, type PresaleWithStatus } from '@/lib/hooks/useLaunchpadPresales';
 import { useUpdatePresaleFees } from '@/lib/hooks/useAdminActions';
 import { useFeeRecipient } from '@/lib/utils/admin';
+import { formatPresaleAmount } from '@/lib/utils/presale';
 
 const statusColors: Record<string, string> = {
   live: 'bg-status-live/15 text-status-live',
@@ -71,8 +72,8 @@ function PresaleCard({ presale, isFeeRecipient }: { presale: PresaleWithStatus; 
 
   const paymentDecimals = presale.paymentTokenDecimals ?? 18;
   const paymentSymbol = presale.paymentTokenSymbol ?? 'ETH';
-  const hardCap = formatUnits(presale.hardCap ?? 0n, paymentDecimals);
-  const totalRaised = formatUnits(presale.totalRaised ?? 0n, paymentDecimals);
+  const hardCap = formatPresaleAmount(presale.hardCap ?? 0n, paymentDecimals);
+  const totalRaised = formatPresaleAmount(presale.totalRaised ?? 0n, paymentDecimals);
 
   return (
     <div className="glass-card rounded-3xl p-6 space-y-4">
@@ -82,7 +83,7 @@ function PresaleCard({ presale, isFeeRecipient }: { presale: PresaleWithStatus; 
             <h3 className="font-display text-display-sm text-ink">
               {presale.saleTokenSymbol ?? 'Token'} Presale
             </h3>
-            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[presale.status] ?? statusColors.ended}`}>
+            <span className={`rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold ${statusColors[presale.status] ?? statusColors.ended}`}>
               {presale.status}
             </span>
           </div>

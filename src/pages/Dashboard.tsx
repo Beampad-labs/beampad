@@ -322,7 +322,9 @@ const Dashboard: React.FC = () => {
                             {saleSymbol}
                           </p>
                           <div className="col-span-2 flex items-center justify-end">
-                            <Badge variant={statusVariant}>{presale.status}</Badge>
+                            <Badge variant={statusVariant} size="sm">
+                              {presale.status}
+                            </Badge>
                           </div>
                         </Link>
                       );
@@ -352,7 +354,9 @@ const Dashboard: React.FC = () => {
                             : '—'}
                         </p>
                         <div className="col-span-2 flex items-center justify-end">
-                          <Badge variant="live">staked</Badge>
+                          <Badge variant="live" size="sm">
+                            staked
+                          </Badge>
                         </div>
                       </div>
                     )}
@@ -456,7 +460,9 @@ const Dashboard: React.FC = () => {
                           <Settings className="w-3.5 h-3.5 text-ink-muted" />
                           {presale.saleTokenSymbol ?? 'Presale'}
                         </span>
-                        <Badge variant={statusVariant}>{presale.status}</Badge>
+                        <Badge variant={statusVariant} size="sm">
+                          {presale.status}
+                        </Badge>
                       </Link>
                     );
                   })}
@@ -519,7 +525,9 @@ const Dashboard: React.FC = () => {
                             {lock.name || `Lock #${lock.id.toString()}`}
                           </p>
                         </div>
-                        <Badge variant={statusVariant}>{statusLabel}</Badge>
+                        <Badge variant={statusVariant} size="sm">
+                          {statusLabel}
+                        </Badge>
                       </Link>
                     );
                   })}

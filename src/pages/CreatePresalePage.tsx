@@ -8,8 +8,14 @@ import {
   useWriteContract,
 } from 'wagmi';
 import { isAddress, parseUnits, type Address } from 'viem';
-import { erc20Abi, PresaleFactory, getContractAddresses } from '@/config';
+import { erc20Abi, PresaleFactory, getContractAddresses, getNativeTokenLabel } from '@/config';
 import { useWhitelistedCreator } from '@/lib/hooks/useWhitelistedCreator';
+import {
+  calculatePresaleRate,
+  calculatePresaleSaleAmount,
+  formatPresaleAmount,
+  formatPresaleRateLabel,
+} from '@/lib/utils/presale';
 import { readTokenPrefill } from '@/lib/utils/token-prefill';
 import {
   Rocket,
@@ -47,12 +53,23 @@ const itemVariants = {
   },
 };
 
-const RATE_DIVISOR = 100;
+function safeParseUnits(value: string, decimals: number): bigint | null {
+  if (!value.trim()) {
+    return 0n;
+  }
+
+  try {
+    return parseUnits(value, decimals);
+  } catch {
+    return null;
+  }
+}
 
 const CreatePresalePage: React.FC = () => {
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const contracts = getContractAddresses(chainId);
+  const nativeTokenSymbol = getNativeTokenLabel(chainId);
   const [searchParams] = useSearchParams();
   const tokenPrefill = readTokenPrefill(searchParams);
 
@@ -75,6 +92,8 @@ const CreatePresalePage: React.FC = () => {
   }, [tokenPrefill.address]);
 
   const selectedSaleTokenAddress = isAddress(saleToken) ? saleToken as Address : undefined;
+  const selectedPaymentTokenAddress =
+    !useNativeToken && isAddress(paymentToken) ? paymentToken as Address : undefined;
 
   const { data: saleTokenSymbolResult } = useReadContract({
     abi: erc20Abi,
@@ -108,19 +127,141 @@ const CreatePresalePage: React.FC = () => {
   const fallbackSaleTokenName = isPrefilledSaleToken ? tokenPrefill.name : undefined;
   const fallbackSaleTokenDecimals = isPrefilledSaleToken ? tokenPrefill.decimals : undefined;
 
+  const resolvedSaleTokenDecimals =
+    saleTokenDecimalsResult !== undefined
+      ? Number(saleTokenDecimalsResult as number | bigint)
+      : fallbackSaleTokenDecimals;
   const saleTokenSymbol = (saleTokenSymbolResult as string | undefined) ?? fallbackSaleTokenSymbol ?? '';
   const saleTokenName = (saleTokenNameResult as string | undefined) ?? fallbackSaleTokenName ?? '';
-  const saleTokenDecimals = Number(
-    (saleTokenDecimalsResult as number | bigint | undefined) ?? fallbackSaleTokenDecimals ?? 18
+  const saleTokenDecimals = resolvedSaleTokenDecimals ?? 18;
+  const hasResolvedSaleTokenDecimals = resolvedSaleTokenDecimals !== undefined;
+
+  const { data: paymentTokenSymbolResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedPaymentTokenAddress,
+    functionName: 'symbol',
+    query: {
+      enabled: Boolean(selectedPaymentTokenAddress),
+    },
+  });
+
+  const { data: paymentTokenNameResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedPaymentTokenAddress,
+    functionName: 'name',
+    query: {
+      enabled: Boolean(selectedPaymentTokenAddress),
+    },
+  });
+
+  const { data: paymentTokenDecimalsResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedPaymentTokenAddress,
+    functionName: 'decimals',
+    query: {
+      enabled: Boolean(selectedPaymentTokenAddress),
+    },
+  });
+
+  const resolvedPaymentTokenDecimals = useNativeToken
+    ? 18
+    : paymentTokenDecimalsResult !== undefined
+    ? Number(paymentTokenDecimalsResult as number | bigint)
+    : undefined;
+  const paymentTokenSymbol = useNativeToken
+    ? nativeTokenSymbol
+    : (paymentTokenSymbolResult as string | undefined) ?? '';
+  const paymentTokenName = useNativeToken
+    ? 'Native Token'
+    : (paymentTokenNameResult as string | undefined) ?? '';
+  const paymentTokenDecimals = resolvedPaymentTokenDecimals ?? 18;
+  const hasResolvedPaymentTokenDecimals = resolvedPaymentTokenDecimals !== undefined;
+  const saleTokenLabel = saleTokenSymbol || 'sale token';
+  const paymentTokenLabel = paymentTokenSymbol || 'payment token';
+
+  const parsedSaleAmount = useMemo(
+    () => safeParseUnits(saleAmount, saleTokenDecimals),
+    [saleAmount, saleTokenDecimals]
+  );
+  const parsedHardCap = useMemo(
+    () => safeParseUnits(hardCap, paymentTokenDecimals),
+    [hardCap, paymentTokenDecimals]
+  );
+  const parsedSoftCap = useMemo(
+    () => safeParseUnits(softCap, paymentTokenDecimals),
+    [softCap, paymentTokenDecimals]
+  );
+  const parsedMinContribution = useMemo(
+    () => safeParseUnits(minContribution, paymentTokenDecimals),
+    [minContribution, paymentTokenDecimals]
+  );
+  const parsedMaxContribution = useMemo(
+    () => safeParseUnits(maxContribution, paymentTokenDecimals),
+    [maxContribution, paymentTokenDecimals]
   );
 
   const calculatedRate = useMemo(() => {
-    if (!saleAmount || !hardCap) return '';
-    const sa = parseFloat(saleAmount);
-    const hc = parseFloat(hardCap);
-    if (hc === 0) return '';
-    return ((sa * RATE_DIVISOR) / hc).toFixed(2);
-  }, [saleAmount, hardCap]);
+    if (parsedSaleAmount === null || parsedHardCap === null || parsedHardCap <= 0n) {
+      return 0n;
+    }
+
+    return calculatePresaleRate(parsedSaleAmount, parsedHardCap);
+  }, [parsedHardCap, parsedSaleAmount]);
+
+  const calculatedSaleAmountAtHardCap = useMemo(() => {
+    if (parsedHardCap === null) {
+      return 0n;
+    }
+
+    return calculatePresaleSaleAmount(parsedHardCap, calculatedRate);
+  }, [calculatedRate, parsedHardCap]);
+
+  const capConfigurationInvalid = Boolean(
+    parsedSoftCap !== null &&
+      parsedHardCap !== null &&
+      parsedHardCap > 0n &&
+      parsedSoftCap > parsedHardCap
+  );
+
+  const contributionConfigurationInvalid = Boolean(
+    parsedMinContribution !== null &&
+      parsedMaxContribution !== null &&
+      parsedMinContribution > 0n &&
+      parsedMaxContribution > 0n &&
+      parsedMinContribution > parsedMaxContribution
+  );
+
+  const ratePreview =
+    calculatedRate > 0n
+      ? formatPresaleRateLabel({
+          rate: calculatedRate,
+          saleTokenSymbol: saleTokenLabel,
+          paymentTokenSymbol: paymentTokenLabel,
+          saleTokenDecimals,
+          paymentTokenDecimals,
+        })
+      : '';
+
+  const rateRoundsSaleAmount = Boolean(
+    parsedSaleAmount !== null &&
+      parsedSaleAmount > 0n &&
+      calculatedSaleAmountAtHardCap > 0n &&
+      parsedSaleAmount !== calculatedSaleAmountAtHardCap
+  );
+  const hasInvalidNumericInput = Boolean(
+    (saleAmount && parsedSaleAmount === null) ||
+      (hardCap && parsedHardCap === null) ||
+      (softCap && parsedSoftCap === null) ||
+      (minContribution && parsedMinContribution === null) ||
+      (maxContribution && parsedMaxContribution === null)
+  );
+  const hasInvalidSchedule = Boolean(
+    startDate &&
+      endDate &&
+      (!Number.isFinite(new Date(startDate).getTime()) ||
+        !Number.isFinite(new Date(endDate).getTime()) ||
+        new Date(endDate).getTime() <= new Date(startDate).getTime())
+  );
 
   const {
     data: hash,
@@ -148,23 +289,44 @@ const CreatePresalePage: React.FC = () => {
   }, [isSuccess, receipt]);
 
   const handleSubmit = () => {
-    if (!saleToken || !hardCap || !softCap || !minContribution || !maxContribution || !startDate || !endDate || !saleAmount) return;
+    if (!userAddress || !isConnected) return;
+    if (!selectedSaleTokenAddress) return;
+    if (!useNativeToken && !selectedPaymentTokenAddress) return;
+    if (!saleAmount || !hardCap || !softCap || !minContribution || !maxContribution || !startDate || !endDate) return;
+    if (!hasResolvedSaleTokenDecimals || !hasResolvedPaymentTokenDecimals) return;
 
-    const startTimestamp = BigInt(Math.floor(new Date(startDate).getTime() / 1000));
-    const endTimestamp = BigInt(Math.floor(new Date(endDate).getTime() / 1000));
+    const startMs = new Date(startDate).getTime();
+    const endMs = new Date(endDate).getTime();
+    if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return;
 
-    const hcParsed = parseUnits(hardCap, 18);
-    const scParsed = parseUnits(softCap, 18);
-    const minC = parseUnits(minContribution, 18);
-    const maxC = parseUnits(maxContribution, 18);
+    if (
+      parsedHardCap === null ||
+      parsedSoftCap === null ||
+      parsedMinContribution === null ||
+      parsedMaxContribution === null ||
+      parsedSaleAmount === null
+    ) {
+      return;
+    }
 
-    const sa = parseFloat(saleAmount);
-    const hc = parseFloat(hardCap);
-    const rate = BigInt(Math.floor((sa * RATE_DIVISOR) / hc));
+    if (
+      parsedHardCap <= 0n ||
+      parsedSoftCap <= 0n ||
+      parsedMinContribution <= 0n ||
+      parsedMaxContribution <= 0n ||
+      parsedSaleAmount <= 0n
+    ) {
+      return;
+    }
+
+    if (capConfigurationInvalid || contributionConfigurationInvalid || calculatedRate <= 0n) return;
+
+    const startTimestamp = BigInt(Math.floor(startMs / 1000));
+    const endTimestamp = BigInt(Math.floor(endMs / 1000));
 
     const paymentAddr = useNativeToken
       ? '0x0000000000000000000000000000000000000000' as Address
-      : paymentToken as Address;
+      : selectedPaymentTokenAddress as Address;
 
     writeContract({
       abi: PresaleFactory,
@@ -172,16 +334,16 @@ const CreatePresalePage: React.FC = () => {
       functionName: 'createPresale',
       args: [
         {
-          saleToken: saleToken as Address,
+          saleToken: selectedSaleTokenAddress,
           paymentToken: paymentAddr,
           config: {
             startTime: startTimestamp,
             endTime: endTimestamp,
-            rate,
-            softCap: scParsed,
-            hardCap: hcParsed,
-            minContribution: minC,
-            maxContribution: maxC,
+            rate: calculatedRate,
+            softCap: parsedSoftCap,
+            hardCap: parsedHardCap,
+            minContribution: parsedMinContribution,
+            maxContribution: parsedMaxContribution,
           },
           owner: userAddress as Address,
           requiresWhitelist,
@@ -309,10 +471,32 @@ const CreatePresalePage: React.FC = () => {
                 </span>
               )}
               {saleTokenName && <span className="text-ink">{saleTokenName}</span>}
-              <span className="text-ink-muted">{saleTokenDecimals} decimals</span>
+              {hasResolvedSaleTokenDecimals && (
+                <span className="text-ink-muted">{saleTokenDecimals} decimals</span>
+              )}
             </div>
             <code className="block break-all text-body-sm font-mono text-ink-muted">
               {saleToken}
+            </code>
+          </div>
+        )}
+
+        {!useNativeToken && paymentToken && (
+          <div className="rounded-2xl border border-border bg-canvas-alt/70 p-4 space-y-2">
+            <p className="text-body-sm font-medium text-ink">Payment Token</p>
+            <div className="flex flex-wrap items-center gap-2 text-body-sm">
+              {paymentTokenSymbol && (
+                <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                  {paymentTokenSymbol}
+                </span>
+              )}
+              {paymentTokenName && <span className="text-ink">{paymentTokenName}</span>}
+              {hasResolvedPaymentTokenDecimals && (
+                <span className="text-ink-muted">{paymentTokenDecimals} decimals</span>
+              )}
+            </div>
+            <code className="block break-all text-body-sm font-mono text-ink-muted">
+              {paymentToken}
             </code>
           </div>
         )}
@@ -357,7 +541,9 @@ const CreatePresalePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-body-sm text-ink-muted font-medium">Hard Cap</label>
+            <label className="text-body-sm text-ink-muted font-medium">
+              Hard Cap (max {paymentTokenLabel} to raise)
+            </label>
             <input
               type="text"
               value={hardCap}
@@ -367,7 +553,9 @@ const CreatePresalePage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-body-sm text-ink-muted font-medium">Soft Cap</label>
+            <label className="text-body-sm text-ink-muted font-medium">
+              Soft Cap (min {paymentTokenLabel} to raise)
+            </label>
             <input
               type="text"
               value={softCap}
@@ -377,7 +565,9 @@ const CreatePresalePage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-body-sm text-ink-muted font-medium">Min Contribution</label>
+            <label className="text-body-sm text-ink-muted font-medium">
+              Min Contribution ({paymentTokenLabel})
+            </label>
             <input
               type="text"
               value={minContribution}
@@ -387,7 +577,9 @@ const CreatePresalePage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-body-sm text-ink-muted font-medium">Max Contribution</label>
+            <label className="text-body-sm text-ink-muted font-medium">
+              Max Contribution ({paymentTokenLabel})
+            </label>
             <input
               type="text"
               value={maxContribution}
@@ -421,7 +613,7 @@ const CreatePresalePage: React.FC = () => {
 
         <div className="space-y-1.5">
           <label className="text-body-sm text-ink-muted font-medium">
-            Sale Amount (total tokens for sale)
+            Sale Amount ({saleTokenLabel} offered)
           </label>
           <input
             type="text"
@@ -432,14 +624,82 @@ const CreatePresalePage: React.FC = () => {
           />
         </div>
 
-        {/* Auto-calculated Rate */}
-        {calculatedRate && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/5 text-accent text-sm">
-            <Info className="w-4 h-4 flex-shrink-0" />
-            <span>
-              Calculated rate: <strong>{calculatedRate}</strong> tokens per {RATE_DIVISOR} payment tokens
-              (RATE_DIVISOR = {RATE_DIVISOR})
-            </span>
+        {ratePreview && (
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4">
+            <div className="flex items-start gap-2 text-sm">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-accent" />
+              <div className="space-y-1 text-ink">
+                <p>
+                  <strong>Rate:</strong> {ratePreview}
+                </p>
+                <p className="text-ink-muted">
+                  Hard cap and soft cap are raise targets in {paymentTokenLabel}, not sale token amounts.
+                </p>
+                <p className="text-ink-muted">
+                  At hard cap, buyers receive{' '}
+                  <strong>
+                    {formatPresaleAmount(calculatedSaleAmountAtHardCap, saleTokenDecimals)} {saleTokenLabel}
+                  </strong>
+                  .
+                </p>
+                {rateRoundsSaleAmount && (
+                  <p className="text-amber-700">
+                    The contract stores rate with two decimals of precision, so the exact sell amount at hard cap
+                    resolves to {formatPresaleAmount(calculatedSaleAmountAtHardCap, saleTokenDecimals)}{' '}
+                    {saleTokenLabel}.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {capConfigurationInvalid && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>Soft cap cannot be greater than hard cap.</p>
+          </div>
+        )}
+
+        {contributionConfigurationInvalid && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>Min contribution cannot be greater than max contribution.</p>
+          </div>
+        )}
+
+        {hasInvalidNumericInput && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>One or more numeric fields are invalid for the selected token decimals.</p>
+          </div>
+        )}
+
+        {hasInvalidSchedule && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>End time must be later than start time.</p>
+          </div>
+        )}
+
+        {!useNativeToken && paymentToken && !selectedPaymentTokenAddress && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>Enter a valid ERC20 payment token address.</p>
+          </div>
+        )}
+
+        {selectedSaleTokenAddress && !hasResolvedSaleTokenDecimals && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
+            <Loader2 className="w-4 h-4 flex-shrink-0 mt-0.5 animate-spin" />
+            <p>Loading sale token metadata...</p>
+          </div>
+        )}
+
+        {!useNativeToken && selectedPaymentTokenAddress && !hasResolvedPaymentTokenDecimals && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
+            <Loader2 className="w-4 h-4 flex-shrink-0 mt-0.5 animate-spin" />
+            <p>Loading payment token metadata...</p>
           </div>
         )}
 
@@ -479,11 +739,21 @@ const CreatePresalePage: React.FC = () => {
             isConfirming ||
             !isConnected ||
             !saleToken ||
+            !selectedSaleTokenAddress ||
+            !hasResolvedSaleTokenDecimals ||
             !hardCap ||
             !softCap ||
+            !minContribution ||
+            !maxContribution ||
             !startDate ||
             !endDate ||
-            !saleAmount
+            !saleAmount ||
+            (!useNativeToken && (!paymentToken || !selectedPaymentTokenAddress || !hasResolvedPaymentTokenDecimals)) ||
+            capConfigurationInvalid ||
+            contributionConfigurationInvalid ||
+            hasInvalidNumericInput ||
+            hasInvalidSchedule ||
+            calculatedRate <= 0n
           }
           className="btn-primary w-full"
         >

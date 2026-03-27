@@ -54,7 +54,7 @@ const itemVariants = {
 function getStatusBadge(status: 'live' | 'upcoming' | 'ended', salePhase: 'whitelist' | 'public' | 'upcoming' | 'ended') {
   if (status === 'live' && salePhase === 'whitelist') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-accent/10 text-accent">
+      <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-accent/10 text-accent">
         <Shield className="w-3.5 h-3.5" />
         Whitelist Live
       </span>
@@ -63,7 +63,7 @@ function getStatusBadge(status: 'live' | 'upcoming' | 'ended', salePhase: 'white
 
   if (status === 'live') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-status-live-bg text-status-live">
+      <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-status-live-bg text-status-live">
         <span className="w-2 h-2 rounded-full bg-status-live animate-pulse" />
         Public Live
       </span>
@@ -72,7 +72,7 @@ function getStatusBadge(status: 'live' | 'upcoming' | 'ended', salePhase: 'white
 
   if (status === 'upcoming') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-status-upcoming-bg text-status-upcoming">
+      <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-status-upcoming-bg text-status-upcoming">
         <Clock className="w-3.5 h-3.5" />
         Upcoming
       </span>
@@ -80,7 +80,7 @@ function getStatusBadge(status: 'live' | 'upcoming' | 'ended', salePhase: 'white
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-status-closed-bg text-status-closed">
+    <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-status-closed-bg text-status-closed">
       <CheckCircle2 className="w-3.5 h-3.5" />
       Ended
     </span>

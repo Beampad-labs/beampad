@@ -1,5 +1,6 @@
 import { LaunchpadPresaleContract } from '@/config';
 import { useLaunchpadPresaleStore } from '@/lib/store/launchpad-presale-store';
+import { PRESALE_RATE_DIVISOR } from '@/lib/utils/presale';
 import { useCallback } from 'react';
 import { type Address } from 'viem';
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
@@ -293,11 +294,9 @@ export function usePresaleOwnerActions() {
 
 // Utility hook for calculating token amounts from payment
 export function usePresaleCalculation() {
-  const RATE_DIVISOR = 100n;
-
   const calculateTokenAmount = useCallback(
     (paymentAmount: bigint, rate: bigint): bigint => {
-      return (paymentAmount * rate) / RATE_DIVISOR;
+      return (paymentAmount * rate) / PRESALE_RATE_DIVISOR;
     },
     []
   );
@@ -305,7 +304,7 @@ export function usePresaleCalculation() {
   const calculatePaymentAmount = useCallback(
     (tokenAmount: bigint, rate: bigint): bigint => {
       if (rate === 0n) return 0n;
-      return (tokenAmount * RATE_DIVISOR) / rate;
+      return (tokenAmount * PRESALE_RATE_DIVISOR) / rate;
     },
     []
   );
@@ -313,6 +312,6 @@ export function usePresaleCalculation() {
   return {
     calculateTokenAmount,
     calculatePaymentAmount,
-    RATE_DIVISOR,
+    RATE_DIVISOR: PRESALE_RATE_DIVISOR,
   };
 }

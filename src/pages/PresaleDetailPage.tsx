@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { useAccount, useChainId } from 'wagmi';
-import { type Address, formatUnits, parseUnits } from 'viem';
+import { type Address, parseUnits } from 'viem';
+import { toast } from 'sonner';
 import {
   useLaunchpadPresale,
   useUserPresaleContribution,
@@ -16,6 +17,12 @@ import {
 } from '@/lib/hooks/usePresaleActions';
 import { usePresaleApproval } from '@/lib/hooks/usePresaleApproval';
 import { getExplorerUrl } from '@/config';
+import {
+  calculatePresaleSaleAmount,
+  formatPresaleAmount,
+  formatPresaleRateLabel,
+} from '@/lib/utils/presale';
+import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
 import {
   ArrowLeft,
   Clock,
@@ -59,14 +66,14 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'live':
       return (
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-700">
+        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-green-100 text-green-700">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           Live
         </span>
       );
     case 'upcoming':
       return (
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
+        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-700">
           <Clock className="w-3.5 h-3.5" />
           Upcoming
         </span>
@@ -74,14 +81,14 @@ function getStatusBadge(status: string) {
     case 'ended':
     case 'finalized':
       return (
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600">
+        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-600">
           <CheckCircle2 className="w-3.5 h-3.5" />
           Finalized
         </span>
       );
     case 'cancelled':
       return (
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold bg-red-100 text-red-600">
+        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-red-100 text-red-600">
           <XCircle className="w-3.5 h-3.5" />
           Cancelled
         </span>
@@ -108,6 +115,9 @@ const PresaleDetailPage: React.FC = () => {
   const [contributeAmount, setContributeAmount] = useState('');
 
   const paymentDecimals = presale?.paymentTokenDecimals ?? 18;
+  const saleDecimals = presale?.saleTokenDecimals ?? 18;
+  const paymentSymbol = presale?.paymentTokenSymbol || 'payment token';
+  const saleTokenSymbol = presale?.saleTokenSymbol || 'sale token';
   const parsedAmount = useMemo(() => {
     try {
       return contributeAmount ? parseUnits(contributeAmount, paymentDecimals) : 0n;
@@ -153,16 +163,27 @@ const PresaleDetailPage: React.FC = () => {
   } = usePresaleClaimRefund();
 
   const {
-    depositSaleTokens,
     finalize,
     enableClaims,
     cancelPresale,
     withdrawProceeds,
+    withdrawUnusedTokens,
     isPending: isOwnerActionPending,
     isConfirming: isOwnerActionConfirming,
+    isSuccess: isOwnerActionSuccess,
+    error: ownerActionError,
+    reset: resetOwnerActions,
+    invalidateOnSuccess: invalidateOwnerAction,
   } = usePresaleOwnerActions();
 
-  const [depositAmount, setDepositAmount] = useState('');
+  const [activeOwnerAction, setActiveOwnerAction] = useState<
+    'finalize' | 'enableClaims' | 'cancel' | 'withdrawProceeds' | 'withdrawUnusedTokens' | null
+  >(null);
+  const [lockedLifecycleActions, setLockedLifecycleActions] = useState({
+    finalize: false,
+    enableClaims: false,
+    cancel: false,
+  });
 
   useEffect(() => {
     if (isContributeSuccess && presaleAddress) {
@@ -171,6 +192,42 @@ const PresaleDetailPage: React.FC = () => {
       refetch();
     }
   }, [isContributeSuccess, presaleAddress, invalidateContribute, refetch]);
+
+  useEffect(() => {
+    if (!ownerActionError) return;
+    toast.error(getFriendlyTxErrorMessage(ownerActionError, 'Owner action'));
+    setActiveOwnerAction(null);
+    resetOwnerActions();
+  }, [ownerActionError, resetOwnerActions]);
+
+  useEffect(() => {
+    if (!isOwnerActionSuccess || !activeOwnerAction || !presaleAddress) return;
+
+    const messages: Record<string, string> = {
+      finalize: 'Sale finalized.',
+      enableClaims: 'Claims enabled.',
+      cancel: 'Sale cancelled.',
+      withdrawProceeds: 'Proceeds withdrawn.',
+      withdrawUnusedTokens: 'Unused sale tokens withdrawn.',
+    };
+    toast.success(messages[activeOwnerAction] || 'Action complete.');
+
+    if (activeOwnerAction === 'finalize' || activeOwnerAction === 'enableClaims' || activeOwnerAction === 'cancel') {
+      setLockedLifecycleActions((prev) => ({ ...prev, [activeOwnerAction]: true }));
+    }
+
+    invalidateOwnerAction(presaleAddress);
+    refetch();
+    setActiveOwnerAction(null);
+    resetOwnerActions();
+  }, [
+    activeOwnerAction,
+    invalidateOwnerAction,
+    isOwnerActionSuccess,
+    presaleAddress,
+    refetch,
+    resetOwnerActions,
+  ]);
 
   const isOwner =
     isConnected &&
@@ -184,6 +241,41 @@ const PresaleDetailPage: React.FC = () => {
     return Number((presale.totalRaised * 100n) / presale.hardCap);
   }, [presale?.hardCap, presale?.totalRaised]);
 
+  const saleAmount = useMemo(() => {
+    if (!presale) return 0n;
+    return calculatePresaleSaleAmount(presale.hardCap ?? 0n, presale.rate ?? 0n);
+  }, [presale]);
+
+  const rateLabel = useMemo(() => {
+    if (!presale?.rate) return '--';
+    return formatPresaleRateLabel({
+      rate: presale.rate,
+      saleTokenSymbol,
+      paymentTokenSymbol: paymentSymbol,
+      saleTokenDecimals: saleDecimals,
+      paymentTokenDecimals: paymentDecimals,
+    });
+  }, [paymentDecimals, paymentSymbol, presale?.rate, saleDecimals, saleTokenSymbol]);
+
+  const hasInvalidCapConfiguration = Boolean(
+    presale?.hardCap &&
+      presale.hardCap > 0n &&
+      presale.softCap &&
+      presale.softCap > presale.hardCap
+  );
+  const ownerActionBusy = isOwnerActionPending || isOwnerActionConfirming;
+  const saleFinalized = Boolean(presale?.successfulFinalization);
+  const claimsLive = Boolean(presale?.claimEnabled);
+  const saleCancelled = Boolean(presale?.refundsEnabled);
+  const canFinalize = !saleFinalized && !claimsLive && !saleCancelled && !lockedLifecycleActions.finalize;
+  const canEnableClaims =
+    saleFinalized && !claimsLive && !saleCancelled && !lockedLifecycleActions.enableClaims;
+  const canCancel = !saleFinalized && !claimsLive && !saleCancelled && !lockedLifecycleActions.cancel;
+  const canWithdrawProceeds = claimsLive;
+  const canWithdrawUnusedTokens = Boolean(
+    (presale?.totalTokensDeposited ?? 0n) > (presale?.committedTokens ?? 0n)
+  );
+
   const handleContribute = () => {
     if (!presaleAddress || parsedAmount === 0n) return;
     contribute({
@@ -191,6 +283,15 @@ const PresaleDetailPage: React.FC = () => {
       amount: parsedAmount,
       isPaymentETH: presale?.isPaymentETH ?? true,
     });
+  };
+
+  const runOwnerAction = (
+    action: 'finalize' | 'enableClaims' | 'cancel' | 'withdrawProceeds' | 'withdrawUnusedTokens',
+    callback: (address: Address) => void
+  ) => {
+    if (!presaleAddress || ownerActionBusy) return;
+    setActiveOwnerAction(action);
+    callback(presaleAddress);
   };
 
   if (isLoading || !presale) {
@@ -251,6 +352,16 @@ const PresaleDetailPage: React.FC = () => {
         )}
       </motion.section>
 
+      {hasInvalidCapConfiguration && (
+        <motion.div
+          variants={itemVariants}
+          className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          This presale is misconfigured on-chain: the soft cap is greater than the hard cap, so it
+          cannot finalize successfully without an admin-side config update.
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Info */}
         <div className="lg:col-span-2 space-y-6">
@@ -261,10 +372,10 @@ const PresaleDetailPage: React.FC = () => {
               <div className="flex justify-between text-body">
                 <span className="text-ink-muted">Raised</span>
                 <span className="text-ink font-medium">
-                  {formatUnits(presale.totalRaised ?? 0n, paymentDecimals)}{' '}
-                  {presale.paymentTokenSymbol || ''} /{' '}
-                  {formatUnits(presale.hardCap ?? 0n, paymentDecimals)}{' '}
-                  {presale.paymentTokenSymbol || ''}
+                  {formatPresaleAmount(presale.totalRaised ?? 0n, paymentDecimals)}{' '}
+                  {paymentSymbol} /{' '}
+                  {formatPresaleAmount(presale.hardCap ?? 0n, paymentDecimals)}{' '}
+                  {paymentSymbol}
                 </span>
               </div>
               <div className="w-full h-4 bg-ink/5 rounded-full overflow-hidden">
@@ -277,8 +388,8 @@ const PresaleDetailPage: React.FC = () => {
                 <span>{Math.min(progress, 100)}% filled</span>
                 <span>
                   Soft Cap:{' '}
-                  {formatUnits(presale.softCap ?? 0n, paymentDecimals)}{' '}
-                  {presale.paymentTokenSymbol || ''}
+                  {formatPresaleAmount(presale.softCap ?? 0n, paymentDecimals)}{' '}
+                  {paymentSymbol}
                 </span>
               </div>
             </div>
@@ -299,37 +410,42 @@ const PresaleDetailPage: React.FC = () => {
                   label: 'Payment Token',
                   value: presale.isPaymentETH
                     ? 'Native Token'
-                    : presale.paymentTokenSymbol || 'Unknown',
+                    : paymentSymbol || 'Unknown',
                   icon: Coins,
                   sub: presale.isPaymentETH
-                    ? ''
+                    ? paymentSymbol
                     : presale.paymentToken
                     ? `${presale.paymentToken.slice(0, 6)}...${presale.paymentToken.slice(-4)}`
                     : '',
                 },
                 {
-                  label: 'Rate',
-                  value: presale.rate ? `${presale.rate.toString()} tokens per 100 payment` : '--',
+                  label: 'Exchange Rate',
+                  value: rateLabel,
                   icon: TrendingUp,
                 },
                 {
+                  label: 'Tokens For Sale',
+                  value: `${formatPresaleAmount(saleAmount, saleDecimals)} ${saleTokenSymbol}`,
+                  icon: Coins,
+                },
+                {
                   label: 'Hard Cap',
-                  value: `${formatUnits(presale.hardCap ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
+                  value: `${formatPresaleAmount(presale.hardCap ?? 0n, paymentDecimals)} ${paymentSymbol}`,
                   icon: Coins,
                 },
                 {
                   label: 'Soft Cap',
-                  value: `${formatUnits(presale.softCap ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
+                  value: `${formatPresaleAmount(presale.softCap ?? 0n, paymentDecimals)} ${paymentSymbol}`,
                   icon: Coins,
                 },
                 {
                   label: 'Min Contribution',
-                  value: `${formatUnits(presale.minContribution ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
+                  value: `${formatPresaleAmount(presale.minContribution ?? 0n, paymentDecimals)} ${paymentSymbol}`,
                   icon: Wallet,
                 },
                 {
                   label: 'Max Contribution',
-                  value: `${formatUnits(presale.maxContribution ?? 0n, paymentDecimals)} ${presale.paymentTokenSymbol || ''}`,
+                  value: `${formatPresaleAmount(presale.maxContribution ?? 0n, paymentDecimals)} ${paymentSymbol}`,
                   icon: Wallet,
                 },
                 {
@@ -379,88 +495,49 @@ const PresaleDetailPage: React.FC = () => {
           {isOwner && (
             <motion.div
               variants={itemVariants}
-              className="glass-card rounded-3xl p-6 space-y-4 border border-amber-200"
+              className="glass-card rounded-3xl p-6 space-y-5"
             >
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-amber-600" />
-                <h2 className="font-display text-display-sm text-ink">Owner Controls</h2>
-              </div>
+              <h2 className="font-display text-display-sm text-ink">Sale Actions</h2>
 
-              {/* Deposit Sale Tokens */}
-              <div className="space-y-3">
-                <label className="text-body-sm text-ink-muted font-medium">
-                  Deposit Sale Tokens
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    placeholder="Amount to deposit"
-                    className="input-field flex-1"
-                  />
-                  <button
-                    onClick={() => {
-                      if (!presaleAddress || !depositAmount) return;
-                      const saleDecimals = presale.saleTokenDecimals ?? 18;
-                      depositSaleTokens(
-                        presaleAddress,
-                        parseUnits(depositAmount, saleDecimals)
-                      );
-                    }}
-                    disabled={isOwnerActionPending || isOwnerActionConfirming}
-                    className="btn-primary"
-                  >
-                    {isOwnerActionPending || isOwnerActionConfirming ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Deposit'
-                    )}
-                  </button>
-                </div>
-              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  onClick={() => runOwnerAction('finalize', finalize)}
+                  disabled={ownerActionBusy || !canFinalize}
+                  className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {canFinalize ? 'Finalize Sale' : saleCancelled ? 'Sale Cancelled' : 'Finalized'}
+                </button>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => presaleAddress && finalize(presaleAddress)}
-                  disabled={
-                    isOwnerActionPending ||
-                    isOwnerActionConfirming ||
-                    Boolean(presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
-                  }
-                  className="btn-primary"
+                  onClick={() => runOwnerAction('enableClaims', enableClaims)}
+                  disabled={ownerActionBusy || !canEnableClaims}
+                  className="btn-secondary w-full disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Finalize
+                  {claimsLive ? 'Claims Enabled' : 'Enable Claims'}
                 </button>
+
                 <button
-                  onClick={() => presaleAddress && enableClaims(presaleAddress)}
-                  disabled={
-                    isOwnerActionPending ||
-                    isOwnerActionConfirming ||
-                    Boolean(!presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
-                  }
-                  className="btn-secondary"
+                  onClick={() => runOwnerAction('cancel', cancelPresale)}
+                  disabled={ownerActionBusy || !canCancel}
+                  className="btn-secondary w-full text-status-error border-status-error hover:bg-status-error/10 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Enable Claims
+                  {saleCancelled ? 'Sale Cancelled' : 'Cancel Sale'}
                 </button>
+
                 <button
-                  onClick={() => presaleAddress && cancelPresale(presaleAddress)}
-                  disabled={
-                    isOwnerActionPending ||
-                    isOwnerActionConfirming ||
-                    Boolean(presale.successfulFinalization || presale.claimEnabled || presale.refundsEnabled)
-                  }
-                  className="btn-secondary text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  Cancel Presale
-                </button>
-                <button
-                  onClick={() => presaleAddress && withdrawProceeds(presaleAddress)}
-                  disabled={isOwnerActionPending || isOwnerActionConfirming || !presale.claimEnabled}
-                  className="btn-secondary"
+                  onClick={() => runOwnerAction('withdrawProceeds', withdrawProceeds)}
+                  disabled={ownerActionBusy || !canWithdrawProceeds}
+                  className="btn-secondary w-full disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Withdraw Proceeds
+                </button>
+
+                <button
+                  onClick={() => runOwnerAction('withdrawUnusedTokens', withdrawUnusedTokens)}
+                  disabled={ownerActionBusy || !canWithdrawUnusedTokens}
+                  className="btn-secondary w-full md:col-span-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Withdraw Unused Sale Tokens
                 </button>
               </div>
             </motion.div>
@@ -477,15 +554,15 @@ const PresaleDetailPage: React.FC = () => {
                 <div className="flex justify-between text-body-sm">
                   <span className="text-ink-muted">Contributed</span>
                   <span className="text-ink font-medium">
-                    {formatUnits(contribution, paymentDecimals)}{' '}
-                    {presale.paymentTokenSymbol || ''}
+                    {formatPresaleAmount(contribution, paymentDecimals)}{' '}
+                    {paymentSymbol}
                   </span>
                 </div>
                 <div className="flex justify-between text-body-sm">
                   <span className="text-ink-muted">Tokens to Receive</span>
                   <span className="text-ink font-medium">
-                    {formatUnits(purchasedTokens, presale.saleTokenDecimals ?? 18)}{' '}
-                    {presale.saleTokenSymbol || ''}
+                    {formatPresaleAmount(purchasedTokens, presale.saleTokenDecimals ?? 18)}{' '}
+                    {saleTokenSymbol}
                   </span>
                 </div>
               </div>
@@ -514,12 +591,12 @@ const PresaleDetailPage: React.FC = () => {
                 </div>
                 <div className="text-body-sm text-ink-muted space-y-1">
                   <p>
-                    Min: {formatUnits(presale.minContribution ?? 0n, paymentDecimals)}{' '}
-                    {presale.paymentTokenSymbol || ''}
+                    Min: {formatPresaleAmount(presale.minContribution ?? 0n, paymentDecimals)}{' '}
+                    {paymentSymbol}
                   </p>
                   <p>
-                    Max: {formatUnits(presale.maxContribution ?? 0n, paymentDecimals)}{' '}
-                    {presale.paymentTokenSymbol || ''}
+                    Max: {formatPresaleAmount(presale.maxContribution ?? 0n, paymentDecimals)}{' '}
+                    {paymentSymbol}
                   </p>
                 </div>
 

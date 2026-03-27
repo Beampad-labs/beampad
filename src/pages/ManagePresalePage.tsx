@@ -9,11 +9,16 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi';
-import { type Address, formatUnits, isAddress } from 'viem';
+import { type Address, isAddress } from 'viem';
 import { toast } from 'sonner';
 import { useLaunchpadPresale } from '@/lib/hooks/useLaunchpadPresales';
 import { useLaunchpadPresaleStore } from '@/lib/store/launchpad-presale-store';
 import { LaunchpadPresaleContract, PresaleContract, erc20Abi, getExplorerUrl } from '@/config';
+import {
+  calculatePresaleSaleAmount,
+  formatPresaleAmount,
+  formatPresaleRateLabel,
+} from '@/lib/utils/presale';
 import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
 import {
   ArrowLeft,
@@ -69,8 +74,6 @@ function getStatusLabel(status: string) {
   }
 }
 
-const RATE_DIVISOR = 100n;
-
 const ManagePresalePage: React.FC = () => {
   const { address: presaleAddr } = useParams<{ address: string }>();
   const presaleAddress = presaleAddr && isAddress(presaleAddr) ? (presaleAddr as Address) : undefined;
@@ -100,12 +103,8 @@ const ManagePresalePage: React.FC = () => {
   const totalSupply = saleTokenInfo?.[2]?.result as bigint | undefined;
 
   const saleAmount = useMemo(() => {
-    if (!presale?.hardCap || !presale?.rate) return 0n;
-    try {
-      return (presale.hardCap * presale.rate) / RATE_DIVISOR;
-    } catch {
-      return 0n;
-    }
+    if (!presale) return 0n;
+    return calculatePresaleSaleAmount(presale.hardCap ?? 0n, presale.rate ?? 0n);
   }, [presale?.hardCap, presale?.rate]);
 
   const launchpadFee = useMemo(() => {
@@ -269,7 +268,23 @@ const ManagePresalePage: React.FC = () => {
     userAddress.toLowerCase() === presale.owner.toLowerCase();
 
   const paymentDecimals = presale?.paymentTokenDecimals ?? 18;
-  const paymentSymbol = presale?.paymentTokenSymbol ?? '';
+  const paymentSymbol = presale?.paymentTokenSymbol ?? 'payment token';
+  const rateLabel = useMemo(() => {
+    if (!presale?.rate) return '--';
+    return formatPresaleRateLabel({
+      rate: presale.rate,
+      saleTokenSymbol,
+      paymentTokenSymbol: paymentSymbol,
+      saleTokenDecimals,
+      paymentTokenDecimals: paymentDecimals,
+    });
+  }, [paymentDecimals, paymentSymbol, presale?.rate, saleTokenDecimals, saleTokenSymbol]);
+  const hasInvalidCapConfiguration = Boolean(
+    presale?.hardCap &&
+      presale.hardCap > 0n &&
+      presale.softCap &&
+      presale.softCap > presale.hardCap
+  );
 
   const progress = useMemo(() => {
     if (!presale?.hardCap || presale.hardCap === 0n) return 0;
@@ -516,7 +531,7 @@ const ManagePresalePage: React.FC = () => {
             </div>
             <h1 className="font-display text-display-lg text-ink">Manage Presale</h1>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.color}`}>
+          <span className={`rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold ${statusInfo.color}`}>
             {statusInfo.text}
           </span>
         </div>
@@ -534,30 +549,53 @@ const ManagePresalePage: React.FC = () => {
         </p>
       </motion.section>
 
+      {hasInvalidCapConfiguration && (
+        <motion.div
+          variants={itemVariants}
+          className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          This presale is misconfigured on-chain: the soft cap is greater than the hard cap, so it
+          cannot finalize successfully without an admin-side config update.
+        </motion.div>
+      )}
+
       <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-4">
         <h2 className="font-display text-display-sm text-ink flex items-center gap-2">
           <Coins className="w-5 h-5 text-accent" />
           Sale Status
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Total Raised</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.totalRaised ?? 0n, paymentDecimals)} {paymentSymbol}
+              {formatPresaleAmount(presale.totalRaised ?? 0n, paymentDecimals)} {paymentSymbol}
+            </p>
+          </div>
+          <div className="stat-card p-4">
+            <p className="text-body-sm text-ink-muted">Soft Cap</p>
+            <p className="font-display text-display-sm text-ink">
+              {formatPresaleAmount(presale.softCap ?? 0n, paymentDecimals)} {paymentSymbol}
             </p>
           </div>
           <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Hard Cap</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.hardCap ?? 0n, paymentDecimals)} {paymentSymbol}
+              {formatPresaleAmount(presale.hardCap ?? 0n, paymentDecimals)} {paymentSymbol}
             </p>
           </div>
           <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Tokens Deposited</p>
             <p className="font-display text-display-sm text-ink">
-              {formatUnits(presale.totalTokensDeposited ?? 0n, saleTokenDecimals)} {saleTokenSymbol}
+              {formatPresaleAmount(presale.totalTokensDeposited ?? 0n, saleTokenDecimals)} {saleTokenSymbol}
             </p>
           </div>
+        </div>
+        <div className="rounded-2xl bg-canvas-alt/70 p-4 space-y-1">
+          <p className="text-body-sm text-ink-muted">Exchange Rate</p>
+          <p className="text-body font-semibold text-ink">{rateLabel}</p>
+          <p className="text-body-sm text-ink-muted">
+            At hard cap, buyers receive {formatPresaleAmount(saleAmount, saleTokenDecimals)} {saleTokenSymbol}.
+          </p>
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-body-sm">
@@ -583,15 +621,15 @@ const ManagePresalePage: React.FC = () => {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="stat-card p-4">
-            <p className="text-body-sm text-ink-muted">Sale Amount</p>
+            <p className="text-body-sm text-ink-muted">Tokens For Sale</p>
             <p className="text-body font-semibold text-ink">
-              {formatUnits(saleAmount, saleTokenDecimals)} {saleTokenSymbol}
+              {formatPresaleAmount(saleAmount, saleTokenDecimals)} {saleTokenSymbol}
             </p>
           </div>
           <div className="stat-card p-4">
             <p className="text-body-sm text-ink-muted">Launchpad Fee (2%)</p>
             <p className="text-body font-semibold text-ink">
-              {formatUnits(launchpadFee, saleTokenDecimals)} {saleTokenSymbol}
+              {formatPresaleAmount(launchpadFee, saleTokenDecimals)} {saleTokenSymbol}
             </p>
           </div>
         </div>
@@ -616,7 +654,7 @@ const ManagePresalePage: React.FC = () => {
             ) : hasSufficientAllowance || hasDeposited ? (
               'Approved'
             ) : (
-              `Approve ${formatUnits(totalRequired, saleTokenDecimals)} ${saleTokenSymbol}`
+              `Approve ${formatPresaleAmount(totalRequired, saleTokenDecimals)} ${saleTokenSymbol}`
             )}
           </button>
           <button

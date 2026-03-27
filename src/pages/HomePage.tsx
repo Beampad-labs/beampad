@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
-import { formatUnits } from 'viem';
 import {
   ArrowRight,
   CheckCircle2,
@@ -11,13 +10,14 @@ import {
   Rocket,
   Search,
   TrendingUp,
-  Users,
   Wallet,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
 import CountUp from '@/components/ui/CountUp';
 import { useLaunchpadPresales } from '@/lib/hooks/useLaunchpadPresales';
+import { useMainnetHomepageStats } from '@/lib/hooks/useMainnetHomepageStats';
+import { formatPresaleAmount } from '@/lib/utils/presale';
 
 const HeroBackgroundScene = lazy(() => import('@/components/animated/HeroBackgroundScene'));
 
@@ -54,12 +54,6 @@ type StatCard = {
   suffix?: string;
 };
 
-const statCards: StatCard[] = [
-  { label: 'Total Raised', value: 2.4, durationMs: 1400, decimals: 1, prefix: '$', suffix: 'M+', icon: TrendingUp },
-  { label: 'Projects Launched', value: 12, durationMs: 1200, icon: Rocket },
-  { label: 'Active Participants', value: 3200, durationMs: 1600, suffix: '+', icon: Users },
-];
-
 const emptyStateCards = [
   { name: 'Coming Soon', desc: 'Fresh launches are being lined up for Beam mainnet.', icon: Rocket },
   { name: 'Stay Tuned', desc: 'Follow BeamPad for launch alerts and presale windows.', icon: Clock },
@@ -88,12 +82,35 @@ const HomePage: React.FC = () => {
   const { openConnectModal } = useConnectModal();
   const { isConnected } = useAccount();
   const { presales, isLoading } = useLaunchpadPresales('all');
+  const mainnetStats = useMainnetHomepageStats();
   const reduceMotion = useReducedMotion();
 
   const livePresales = presales.filter((presale) => presale.status === 'live');
   const upcomingPresales = presales.filter((presale) => presale.status === 'upcoming');
   const featuredPresales = [...livePresales, ...upcomingPresales].slice(0, 3);
   const hoverLift = reduceMotion ? undefined : { y: -6, scale: 1.01 };
+  const statCards: StatCard[] = [
+    {
+      label: 'Total Raised',
+      value: mainnetStats.totalRaised,
+      durationMs: 1400,
+      decimals: mainnetStats.totalRaisedDecimals,
+      suffix: mainnetStats.totalRaisedSuffix,
+      icon: TrendingUp,
+    },
+    {
+      label: 'Projects Launched',
+      value: mainnetStats.projectsLaunched,
+      durationMs: 1200,
+      icon: Rocket,
+    },
+    {
+      label: 'Active Presales',
+      value: mainnetStats.activePresales,
+      durationMs: 1200,
+      icon: Zap,
+    },
+  ];
 
   return (
     <motion.div
@@ -153,14 +170,9 @@ const HomePage: React.FC = () => {
                 Explore Launchpad
               </Link>
               {isConnected && (
-                <a
-                  href="https://beampad.org/tools"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary"
-                >
+                <Link to="/tools" className="btn-secondary">
                   Start Building
-                </a>
+                </Link>
               )}
               {!isConnected && (
                 <button
@@ -188,13 +200,17 @@ const HomePage: React.FC = () => {
                 <stat.icon className="h-6 w-6" />
               </div>
               <p className="font-display text-display-md text-ink">
-                <CountUp
-                  to={stat.value}
-                  durationMs={stat.durationMs}
-                  decimals={stat.decimals}
-                  prefix={stat.prefix}
-                  suffix={stat.suffix}
-                />
+                {mainnetStats.isLoading ? (
+                  <span className="inline-block h-10 w-24 animate-pulse rounded-xl bg-ink/5 align-middle" />
+                ) : (
+                  <CountUp
+                    to={stat.value}
+                    durationMs={stat.durationMs}
+                    decimals={stat.decimals}
+                    prefix={stat.prefix}
+                    suffix={stat.suffix}
+                  />
+                )}
               </p>
               <p className="mt-1 text-body text-ink-muted">{stat.label}</p>
             </motion.div>
@@ -240,7 +256,7 @@ const HomePage: React.FC = () => {
                         {presale.saleTokenSymbol || 'Unknown Token'}
                       </h3>
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`rounded-full px-2.5 py-0.5 text-[0.6875rem] leading-none font-semibold ${
                           presale.status === 'live'
                             ? 'bg-status-live-bg text-status-live'
                             : 'bg-status-upcoming-bg text-status-upcoming'
@@ -268,13 +284,13 @@ const HomePage: React.FC = () => {
                       <div className="flex justify-between text-body-sm text-ink-muted">
                         <span>
                           {presale.totalRaised
-                            ? formatUnits(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
+                            ? formatPresaleAmount(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
                             : '0'}{' '}
                           {presale.paymentTokenSymbol || ''}
                         </span>
                         <span>
                           {presale.hardCap
-                            ? formatUnits(presale.hardCap, presale.paymentTokenDecimals ?? 18)
+                            ? formatPresaleAmount(presale.hardCap, presale.paymentTokenDecimals ?? 18)
                             : '0'}{' '}
                           {presale.paymentTokenSymbol || ''}
                         </span>

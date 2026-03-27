@@ -72,7 +72,7 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddressMap> = {
     tokenLocker: "0x153A2142D68EE6Bd2a4Cd63b46C0f60aeC34cc14",
     nftFactory: "0x83FAF9a7b7A33fF761011B40dC2Ec54a079c2459",
     nftFactoryLens: "0x40bfd48521cdaa3EA460917e053738765063745D",
-    presaleFactory: "0xc73290EC0D30c793250D50d2Ec1BCFa36e2B00c8",
+    presaleFactory: "0x36E903d3BcF85CF2a35E489DC77089Ccd8a289d0",
     tokenFactory: "0x81850e53DEc753b95DE4599173755bc640575c3D",
     airdropMultisender: "0xBA3a598a13CE439bfed5b18B405E9e45Ef2A1336",
   },
