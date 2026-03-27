@@ -14,6 +14,7 @@ import {
   getStakingTokenLabel,
 } from '@/config';
 import { useLaunchpadPresales } from '@/lib/hooks/useLaunchpadPresales';
+import { useAllLocks } from '@/lib/hooks/useAllLocks';
 import { useUserTokens } from '@/lib/hooks/useUserTokens';
 
 const containerVariants = {
@@ -65,6 +66,7 @@ const Dashboard: React.FC = () => {
 
   const { presales, isLoading: isPresalesLoading } = useLaunchpadPresales('all');
   const { tokens: createdTokens, isLoading: isTokensLoading } = useUserTokens();
+  const { locks, isLoading: isLocksLoading } = useAllLocks();
 
   const { data: stakingTokenData } = useReadContracts({
     contracts: [
@@ -183,6 +185,18 @@ const Dashboard: React.FC = () => {
       return typeof presale.owner === 'string' && presale.owner.toLowerCase() === ownerAddress;
     });
   }, [address, presales]);
+
+  const recentLocks = useMemo(() => {
+    return [...locks]
+      .sort((a, b) => Number(b.id - a.id))
+      .slice(0, 5);
+  }, [locks]);
+
+  const activeLockCount = useMemo(() => {
+    return locks.filter((lock) => !lock.withdrawn).length;
+  }, [locks]);
+
+  const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
 
   const balanceDisplay = balance
     ? `${Number(balance.formatted).toLocaleString(undefined, {
@@ -466,10 +480,57 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-display text-body text-ink">Token Locks</h3>
-                  <p className="text-body-sm text-ink-muted">Lock tokens for vesting or liquidity.</p>
+                  <p className="text-body-sm text-ink-muted">
+                    {isLocksLoading ? 'Loading locks…' : `${activeLockCount} active, ${locks.length} total`}
+                  </p>
                 </div>
               </div>
-              <Link to="/tools/token-locker" className="btn-secondary w-full">Create Lock</Link>
+
+              {isLocksLoading && recentLocks.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">Loading your locks…</p>
+              ) : recentLocks.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">No token locks yet. Create one to secure vesting or liquidity.</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-auto no-scrollbar">
+                  {recentLocks.map((lock) => {
+                    const statusVariant = lock.withdrawn
+                      ? 'closed'
+                      : lock.unlockDate <= currentTimestamp
+                      ? 'upcoming'
+                      : 'live';
+
+                    const statusLabel = lock.withdrawn
+                      ? 'withdrawn'
+                      : lock.unlockDate <= currentTimestamp
+                      ? 'unlockable'
+                      : 'locked';
+
+                    return (
+                      <Link
+                        key={lock.id.toString()}
+                        to={`/locks/${lock.id.toString()}`}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-canvas/40 px-3 py-2 text-body-sm text-ink hover:bg-canvas transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-ink">
+                            {lock.formattedAmount} {lock.tokenSymbol}
+                          </p>
+                          <p className="truncate text-xs text-ink-muted">
+                            {lock.name || `Lock #${lock.id.toString()}`}
+                          </p>
+                        </div>
+                        <Badge variant={statusVariant}>{statusLabel}</Badge>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <Link to="/tools/token-locker" className="btn-secondary w-full">
+                  {locks.length > 0 ? 'Manage Locks' : 'Create Lock'}
+                </Link>
+              </div>
             </div>
           </div>
         ) : (

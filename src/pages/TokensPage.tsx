@@ -7,6 +7,7 @@ import { erc20Abi, getExplorerUrl } from '@/config';
 import { formatUnits, isAddress, type Address } from 'viem';
 import { useUserTokens } from '@/lib/hooks/useUserTokens';
 import { useBlockchainStore } from '@/lib/store/blockchain-store';
+import { buildTokenPrefillSearch } from '@/lib/utils/token-prefill';
 import { toast } from 'sonner';
 
 const containerVariants = {
@@ -218,82 +219,106 @@ const TokensPage: React.FC = () => {
       ) : (
         <motion.section variants={itemVariants} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {tokenList.map((token) => (
-              <div key={token.address} className="glass-card rounded-3xl p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="font-display text-display-sm text-ink">{token.symbol}</p>
-                      <p className="text-body-sm text-ink-muted">{token.name}</p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        token.isFactory
-                          ? 'bg-accent/15 text-accent'
-                          : 'bg-ink/10 text-ink-muted'
-                      }`}
-                    >
-                      {token.isFactory ? 'Created' : 'Imported'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {!token.isFactory && (
-                      <button
-                        onClick={() => handleRemoveImported(token.address)}
-                        className="p-2 rounded-xl text-ink-muted hover:text-status-error transition-colors"
-                        aria-label="Remove imported token"
-                        title="Remove from list"
+            {tokenList.map((token) => {
+              const tokenSearch = buildTokenPrefillSearch({
+                address: token.address,
+                symbol: token.symbol,
+                name: token.name,
+                decimals: token.decimals,
+              });
+
+              return (
+                <div key={token.address} className="glass-card rounded-3xl p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="font-display text-display-sm text-ink">{token.symbol}</p>
+                        <p className="text-body-sm text-ink-muted">{token.name}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          token.isFactory
+                            ? 'bg-accent/15 text-accent'
+                            : 'bg-ink/10 text-ink-muted'
+                        }`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {token.isFactory ? 'Created' : 'Imported'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!token.isFactory && (
+                        <button
+                          onClick={() => handleRemoveImported(token.address)}
+                          className="p-2 rounded-xl text-ink-muted hover:text-status-error transition-colors"
+                          aria-label="Remove imported token"
+                          title="Remove from list"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleCopy(token.address)}
+                        className="p-2 rounded-xl bg-canvas text-ink-muted hover:text-ink transition-colors"
+                        aria-label="Copy token address"
+                      >
+                        <Copy className="w-4 h-4" />
                       </button>
+                    </div>
+                  </div>
+                  <code className="text-body-sm font-mono text-ink-muted break-all">
+                    {token.address}
+                  </code>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1">
+                    {token.balance !== undefined && (
+                      <p className="text-body-sm text-ink-muted">
+                        Balance:{' '}
+                        <span className="font-mono text-ink">
+                          {Number(formatUnits(token.balance, token.decimals)).toLocaleString()}
+                        </span>{' '}
+                        {token.symbol}
+                      </p>
                     )}
-                    <button
-                      onClick={() => handleCopy(token.address)}
-                      className="p-2 rounded-xl bg-canvas text-ink-muted hover:text-ink transition-colors"
-                      aria-label="Copy token address"
+                    {token.totalSupply !== undefined && (
+                      <p className="text-body-sm text-ink-muted">
+                        Total Supply:{' '}
+                        <span className="font-mono text-ink">
+                          {Number(formatUnits(token.totalSupply, token.decimals)).toLocaleString()}
+                        </span>{' '}
+                        {token.symbol}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href={`${explorerUrl}/token/${token.address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary inline-flex items-center gap-2"
                     >
-                      <Copy className="w-4 h-4" />
-                    </button>
+                      Explorer <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <Link
+                      to={{ pathname: '/create/presale', search: tokenSearch }}
+                      className="btn-secondary"
+                    >
+                      Launch Presale
+                    </Link>
+                    <Link
+                      to={{ pathname: '/tools/airdrop', search: tokenSearch }}
+                      className="btn-secondary"
+                    >
+                      Airdrop
+                    </Link>
+                    <Link
+                      to={{ pathname: '/tools/token-locker', search: tokenSearch }}
+                      className="btn-secondary"
+                    >
+                      Lock
+                    </Link>
                   </div>
                 </div>
-                <code className="text-body-sm font-mono text-ink-muted break-all">
-                  {token.address}
-                </code>
-                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                  {token.balance !== undefined && (
-                    <p className="text-body-sm text-ink-muted">
-                      Balance:{' '}
-                      <span className="font-mono text-ink">
-                        {Number(formatUnits(token.balance, token.decimals)).toLocaleString()}
-                      </span>{' '}
-                      {token.symbol}
-                    </p>
-                  )}
-                  {token.totalSupply !== undefined && (
-                    <p className="text-body-sm text-ink-muted">
-                      Total Supply:{' '}
-                      <span className="font-mono text-ink">
-                        {Number(formatUnits(token.totalSupply, token.decimals)).toLocaleString()}
-                      </span>{' '}
-                      {token.symbol}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href={`${explorerUrl}/token/${token.address}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary inline-flex items-center gap-2"
-                  >
-                    Explorer <ExternalLink className="w-4 h-4" />
-                  </a>
-                  <Link to={`/create/presale?token=${token.address}`} className="btn-secondary">Launch Presale</Link>
-                  <Link to={`/tools/airdrop?token=${token.address}`} className="btn-secondary">Airdrop</Link>
-                  <Link to={`/tools/token-locker?token=${token.address}`} className="btn-secondary">Lock</Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.section>
       )}

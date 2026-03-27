@@ -17,7 +17,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import CountUp from '@/components/ui/CountUp';
-import { DOCUMENTATION_URL } from '@/config';
 import { useLaunchpadPresales } from '@/lib/hooks/useLaunchpadPresales';
 
 const HeroBackgroundScene = lazy(() => import('@/components/animated/HeroBackgroundScene'));
@@ -153,14 +152,16 @@ const HomePage: React.FC = () => {
               <Link to="/presales" className="btn-primary">
                 Explore Launchpad
               </Link>
-              <a
-                href={DOCUMENTATION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-              >
-                Documentation
-              </a>
+              {isConnected && (
+                <a
+                  href="https://beampad.org/tools"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                >
+                  Start Building
+                </a>
+              )}
               {!isConnected && (
                 <button
                   onClick={openConnectModal}

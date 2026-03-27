@@ -1,13 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   useAccount,
   useChainId,
+  useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi';
-import { parseUnits, type Address } from 'viem';
+import { formatUnits, isAddress, parseUnits, type Address } from 'viem';
 import { AirdropMultiSender, erc20Abi, getContractAddresses } from '@/config';
+import { readTokenPrefill } from '@/lib/utils/token-prefill';
 import {
   Send,
   Loader2,
@@ -20,6 +22,7 @@ import {
   FileText,
   Trash2,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -53,11 +56,59 @@ const AirdropPage: React.FC = () => {
   const { isConnected } = useAccount();
   const chainId = useChainId();
   const contracts = getContractAddresses(chainId);
+  const [searchParams] = useSearchParams();
+  const tokenPrefill = readTokenPrefill(searchParams);
 
   const [isNativeToken, setIsNativeToken] = useState(false);
-  const [tokenAddress, setTokenAddress] = useState('');
+  const [tokenAddress, setTokenAddress] = useState(tokenPrefill.address ?? '');
   const [recipientsText, setRecipientsText] = useState('');
-  const [decimals] = useState(18);
+
+  useEffect(() => {
+    setTokenAddress(tokenPrefill.address ?? '');
+    if (tokenPrefill.address) {
+      setIsNativeToken(false);
+    }
+  }, [tokenPrefill.address]);
+
+  const selectedTokenAddress = !isNativeToken && isAddress(tokenAddress) ? tokenAddress as Address : undefined;
+
+  const { data: tokenSymbolResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'symbol',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const { data: tokenNameResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'name',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const { data: tokenDecimalsResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'decimals',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const isPrefilledToken = tokenPrefill.address?.toLowerCase() === tokenAddress.toLowerCase();
+  const fallbackTokenSymbol = isPrefilledToken ? tokenPrefill.symbol : undefined;
+  const fallbackTokenName = isPrefilledToken ? tokenPrefill.name : undefined;
+  const fallbackTokenDecimals = isPrefilledToken ? tokenPrefill.decimals : undefined;
+
+  const tokenSymbol = (tokenSymbolResult as string | undefined) ?? fallbackTokenSymbol ?? '';
+  const tokenName = (tokenNameResult as string | undefined) ?? fallbackTokenName ?? '';
+  const tokenDecimals = Number(
+    (tokenDecimalsResult as number | bigint | undefined) ?? fallbackTokenDecimals ?? 18
+  );
 
   const parsedRecipients = useMemo((): Recipient[] => {
     if (!recipientsText.trim()) return [];
@@ -78,12 +129,12 @@ const AirdropPage: React.FC = () => {
   const totalAmount = useMemo(() => {
     try {
       return parsedRecipients.reduce((sum, r) => {
-        return sum + parseUnits(r.amount, decimals);
+        return sum + parseUnits(r.amount, tokenDecimals);
       }, 0n);
     } catch {
       return 0n;
     }
-  }, [parsedRecipients, decimals]);
+  }, [parsedRecipients, tokenDecimals]);
 
   // Approval
   const {
@@ -126,7 +177,7 @@ const AirdropPage: React.FC = () => {
     if (parsedRecipients.length === 0) return;
 
     const addresses = parsedRecipients.map((r) => r.address as Address);
-    const amounts = parsedRecipients.map((r) => parseUnits(r.amount, decimals));
+    const amounts = parsedRecipients.map((r) => parseUnits(r.amount, tokenDecimals));
 
     if (isNativeToken) {
       sendWrite({
@@ -151,7 +202,8 @@ const AirdropPage: React.FC = () => {
     resetApprove();
     resetSend();
     setRecipientsText('');
-    setTokenAddress('');
+    setTokenAddress(tokenPrefill.address ?? '');
+    setIsNativeToken(false);
   };
 
   if (isSendSuccess) {
@@ -229,15 +281,34 @@ const AirdropPage: React.FC = () => {
 
         {/* Token Address (ERC20 only) */}
         {!isNativeToken && (
-          <div className="space-y-1.5">
-            <label className="text-body-sm text-ink-muted font-medium">Token Address</label>
-            <input
-              type="text"
-              value={tokenAddress}
-              onChange={(e) => setTokenAddress(e.target.value)}
-              placeholder="0x..."
-              className="input-field w-full font-mono text-sm"
-            />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-body-sm text-ink-muted font-medium">Token Address</label>
+              <input
+                type="text"
+                value={tokenAddress}
+                onChange={(e) => setTokenAddress(e.target.value)}
+                placeholder="0x..."
+                className="input-field w-full font-mono text-sm"
+              />
+            </div>
+            {tokenAddress && (
+              <div className="rounded-2xl border border-border bg-canvas-alt/70 p-4 space-y-2">
+                <p className="text-body-sm font-medium text-ink">Selected Token</p>
+                <div className="flex flex-wrap items-center gap-2 text-body-sm">
+                  {tokenSymbol && (
+                    <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                      {tokenSymbol}
+                    </span>
+                  )}
+                  {tokenName && <span className="text-ink">{tokenName}</span>}
+                  <span className="text-ink-muted">{tokenDecimals} decimals</span>
+                </div>
+                <code className="block break-all text-body-sm font-mono text-ink-muted">
+                  {tokenAddress}
+                </code>
+              </div>
+            )}
           </div>
         )}
 
@@ -303,7 +374,8 @@ const AirdropPage: React.FC = () => {
                 {parsedRecipients.length} recipients
               </span>
               <span className="text-body-sm font-medium text-accent">
-                Total: {totalAmount > 0n ? (Number(totalAmount) / 10 ** decimals).toLocaleString() : '0'} tokens
+                Total: {totalAmount > 0n ? formatUnits(totalAmount, tokenDecimals) : '0'}{' '}
+                {isNativeToken ? 'native' : tokenSymbol || 'tokens'}
               </span>
             </div>
           </div>

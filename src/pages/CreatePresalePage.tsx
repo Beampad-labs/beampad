@@ -1,9 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseUnits, type Address } from 'viem';
-import { PresaleFactory, getContractAddresses } from '@/config';
+import {
+  useAccount,
+  useChainId,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
+import { isAddress, parseUnits, type Address } from 'viem';
+import { erc20Abi, PresaleFactory, getContractAddresses } from '@/config';
 import { useWhitelistedCreator } from '@/lib/hooks/useWhitelistedCreator';
+import { readTokenPrefill } from '@/lib/utils/token-prefill';
 import {
   Rocket,
   Loader2,
@@ -15,7 +22,7 @@ import {
   ExternalLink,
   Info,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,10 +53,12 @@ const CreatePresalePage: React.FC = () => {
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const contracts = getContractAddresses(chainId);
+  const [searchParams] = useSearchParams();
+  const tokenPrefill = readTokenPrefill(searchParams);
 
   const { isWhitelisted, isLoading: isCheckingWhitelist } = useWhitelistedCreator(userAddress);
 
-  const [saleToken, setSaleToken] = useState('');
+  const [saleToken, setSaleToken] = useState(tokenPrefill.address ?? '');
   const [paymentToken, setPaymentToken] = useState('');
   const [useNativeToken, setUseNativeToken] = useState(true);
   const [hardCap, setHardCap] = useState('');
@@ -60,6 +69,50 @@ const CreatePresalePage: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [saleAmount, setSaleAmount] = useState('');
   const [requiresWhitelist, setRequiresWhitelist] = useState(false);
+
+  useEffect(() => {
+    setSaleToken(tokenPrefill.address ?? '');
+  }, [tokenPrefill.address]);
+
+  const selectedSaleTokenAddress = isAddress(saleToken) ? saleToken as Address : undefined;
+
+  const { data: saleTokenSymbolResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedSaleTokenAddress,
+    functionName: 'symbol',
+    query: {
+      enabled: Boolean(selectedSaleTokenAddress),
+    },
+  });
+
+  const { data: saleTokenNameResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedSaleTokenAddress,
+    functionName: 'name',
+    query: {
+      enabled: Boolean(selectedSaleTokenAddress),
+    },
+  });
+
+  const { data: saleTokenDecimalsResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedSaleTokenAddress,
+    functionName: 'decimals',
+    query: {
+      enabled: Boolean(selectedSaleTokenAddress),
+    },
+  });
+
+  const isPrefilledSaleToken = tokenPrefill.address?.toLowerCase() === saleToken.toLowerCase();
+  const fallbackSaleTokenSymbol = isPrefilledSaleToken ? tokenPrefill.symbol : undefined;
+  const fallbackSaleTokenName = isPrefilledSaleToken ? tokenPrefill.name : undefined;
+  const fallbackSaleTokenDecimals = isPrefilledSaleToken ? tokenPrefill.decimals : undefined;
+
+  const saleTokenSymbol = (saleTokenSymbolResult as string | undefined) ?? fallbackSaleTokenSymbol ?? '';
+  const saleTokenName = (saleTokenNameResult as string | undefined) ?? fallbackSaleTokenName ?? '';
+  const saleTokenDecimals = Number(
+    (saleTokenDecimalsResult as number | bigint | undefined) ?? fallbackSaleTokenDecimals ?? 18
+  );
 
   const calculatedRate = useMemo(() => {
     if (!saleAmount || !hardCap) return '';
@@ -245,6 +298,24 @@ const CreatePresalePage: React.FC = () => {
       {/* Form */}
       <motion.section variants={itemVariants} className="glass-card rounded-3xl p-6 space-y-6">
         <h2 className="font-display text-display-sm text-ink">Token Configuration</h2>
+
+        {saleToken && (
+          <div className="rounded-2xl border border-border bg-canvas-alt/70 p-4 space-y-2">
+            <p className="text-body-sm font-medium text-ink">Selected Token</p>
+            <div className="flex flex-wrap items-center gap-2 text-body-sm">
+              {saleTokenSymbol && (
+                <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                  {saleTokenSymbol}
+                </span>
+              )}
+              {saleTokenName && <span className="text-ink">{saleTokenName}</span>}
+              <span className="text-ink-muted">{saleTokenDecimals} decimals</span>
+            </div>
+            <code className="block break-all text-body-sm font-mono text-ink-muted">
+              {saleToken}
+            </code>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-body-sm text-ink-muted font-medium">Sale Token Address</label>

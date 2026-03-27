@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseUnits, type Address } from 'viem';
+import {
+  useAccount,
+  useChainId,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
+import { isAddress, parseUnits, type Address } from 'viem';
 import { TokenLocker, erc20Abi, getContractAddresses, getExplorerUrl } from '@/config';
 import { useAllLocks } from '@/lib/hooks/useAllLocks';
+import { readTokenPrefill } from '@/lib/utils/token-prefill';
 import {
   Lock,
   Unlock,
@@ -72,16 +79,61 @@ const TokenLockerPage: React.FC = () => {
   const contracts = getContractAddresses(chainId);
   const explorerUrl = getExplorerUrl(chainId);
   const [searchParams] = useSearchParams();
+  const tokenPrefill = readTokenPrefill(searchParams);
 
   const { locks, isLoading: isLoadingLocks, refetch: refetchLocks } = useAllLocks();
 
   // Create Lock Form - pre-fill token from query param
-  const [tokenAddress, setTokenAddress] = useState(searchParams.get('token') || '');
+  const [tokenAddress, setTokenAddress] = useState(tokenPrefill.address ?? '');
   const [amount, setAmount] = useState('');
   const [durationDays, setDurationDays] = useState('');
   const [lockName, setLockName] = useState('');
   const [lockDescription, setLockDescription] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(true);
+
+  useEffect(() => {
+    setTokenAddress(tokenPrefill.address ?? '');
+  }, [tokenPrefill.address]);
+
+  const selectedTokenAddress = isAddress(tokenAddress) ? tokenAddress as Address : undefined;
+
+  const { data: tokenSymbolResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'symbol',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const { data: tokenNameResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'name',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const { data: tokenDecimalsResult } = useReadContract({
+    abi: erc20Abi,
+    address: selectedTokenAddress,
+    functionName: 'decimals',
+    query: {
+      enabled: Boolean(selectedTokenAddress),
+    },
+  });
+
+  const isPrefilledToken = tokenPrefill.address?.toLowerCase() === tokenAddress.toLowerCase();
+  const fallbackTokenSymbol = isPrefilledToken ? tokenPrefill.symbol : undefined;
+  const fallbackTokenName = isPrefilledToken ? tokenPrefill.name : undefined;
+  const fallbackTokenDecimals = isPrefilledToken ? tokenPrefill.decimals : undefined;
+
+  const tokenSymbol = (tokenSymbolResult as string | undefined) ?? fallbackTokenSymbol ?? '';
+  const tokenName = (tokenNameResult as string | undefined) ?? fallbackTokenName ?? '';
+  const tokenDecimals = Number(
+    (tokenDecimalsResult as number | bigint | undefined) ?? fallbackTokenDecimals ?? 18
+  );
 
   // Approval
   const {
@@ -127,7 +179,7 @@ const TokenLockerPage: React.FC = () => {
 
   const handleApprove = () => {
     if (!tokenAddress || !amount) return;
-    const parsed = parseUnits(amount, 18);
+    const parsed = parseUnits(amount, tokenDecimals);
     approveWrite({
       abi: erc20Abi,
       address: tokenAddress as Address,
@@ -138,7 +190,7 @@ const TokenLockerPage: React.FC = () => {
 
   const handleCreateLock = () => {
     if (!tokenAddress || !amount || !durationDays) return;
-    const parsed = parseUnits(amount, 18);
+    const parsed = parseUnits(amount, tokenDecimals);
     const durationSeconds = BigInt(parseInt(durationDays) * 86400);
 
     lockWrite({
@@ -237,14 +289,34 @@ const TokenLockerPage: React.FC = () => {
                 />
               </div>
 
+              {tokenAddress && (
+                <div className="rounded-2xl border border-border bg-canvas-alt/70 p-4 space-y-2">
+                  <p className="text-body-sm font-medium text-ink">Selected Token</p>
+                  <div className="flex flex-wrap items-center gap-2 text-body-sm">
+                    {tokenSymbol && (
+                      <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                        {tokenSymbol}
+                      </span>
+                    )}
+                    {tokenName && <span className="text-ink">{tokenName}</span>}
+                    <span className="text-ink-muted">{tokenDecimals} decimals</span>
+                  </div>
+                  <code className="block break-all text-body-sm font-mono text-ink-muted">
+                    {tokenAddress}
+                  </code>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-body-sm text-ink-muted font-medium">Amount</label>
+                  <label className="text-body-sm text-ink-muted font-medium">
+                    Amount {tokenSymbol ? `(${tokenSymbol})` : ''}
+                  </label>
                   <input
                     type="text"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="1000000"
+                    placeholder={tokenSymbol ? `1000 ${tokenSymbol}` : '1000000'}
                     className="input-field w-full"
                   />
                 </div>
