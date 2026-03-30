@@ -12,6 +12,7 @@ import PhaseCountdown from '@/components/ui/PhaseCountdown';
 import { resolveNFTSaleCountdown } from '@/lib/utils/nft-sales';
 import { formatPresaleAmount } from '@/lib/utils/presale';
 import { useChainId } from 'wagmi';
+import beampadLogo from '@/assets/Beampad-logo.jpg';
 import {
   Clock,
   CheckCircle2,
@@ -60,6 +61,8 @@ const launchTypeTabs: { label: string; value: LaunchTypeFilter }[] = [
   { label: 'Token Presales', value: 'token' },
   { label: 'NFT Drops', value: 'nft' },
 ];
+
+const BEAMPAD_PRESALE_ADDRESS = '0x69a4d1c13cb2308611cac2ca2aa2dfaec2b96622';
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -228,83 +231,99 @@ const PresalesPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visiblePresales.map((presale) => (
-              <div key={presale.address}>
-                <Link to={`/presales/${presale.address}`}>
-                  <div className="project-card rounded-3xl p-6 space-y-4 h-full">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-display text-display-sm text-ink">
-                          {presale.saleTokenSymbol || 'Unknown'}
-                        </h3>
-                        <p className="text-body-sm text-ink-muted">
-                          {presale.saleTokenName || 'Token Sale'}
-                        </p>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent mt-1">
-                          Token
-                        </span>
-                      </div>
-                      {getStatusBadge(presale.status)}
-                    </div>
+            {visiblePresales.map((presale) => {
+              const isBeamPadPresale =
+                presale.address.toLowerCase() === BEAMPAD_PRESALE_ADDRESS;
 
-                    {/* Progress */}
-                    <div className="space-y-2">
+              return (
+                <div key={presale.address}>
+                  <Link to={`/presales/${presale.address}`}>
+                    <div className="project-card rounded-3xl p-6 space-y-4 h-full">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          {isBeamPadPresale && (
+                            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-accent/15 bg-canvas-alt shadow-sm ring-2 ring-accent/10">
+                              <img
+                                src={beampadLogo}
+                                alt="BeamPad"
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            <h3 className="font-display text-display-sm text-ink">
+                              {presale.saleTokenSymbol || 'Unknown'}
+                            </h3>
+                            <p className="text-body-sm text-ink-muted">
+                              {presale.saleTokenName || 'Token Sale'}
+                            </p>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent mt-1">
+                              Token
+                            </span>
+                          </div>
+                        </div>
+                        {getStatusBadge(presale.status)}
+                      </div>
+
+                      {/* Progress */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-body-sm">
+                          <span className="text-ink-muted">Progress</span>
+                          <span className="text-ink font-medium">{presale.progress}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-ink/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-accent rounded-full transition-all duration-500"
+                            style={{ width: `${presale.progress}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Raised / Hard Cap */}
                       <div className="flex justify-between text-body-sm">
-                        <span className="text-ink-muted">Progress</span>
-                        <span className="text-ink font-medium">{presale.progress}%</span>
+                        <div>
+                          <p className="text-ink-muted">Raised</p>
+                          <p className="text-ink font-medium">
+                            {presale.totalRaised
+                              ? formatPresaleAmount(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
+                              : '0'}{' '}
+                            {presale.paymentTokenSymbol || ''}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-ink-muted">Hard Cap</p>
+                          <p className="text-ink font-medium">
+                            {presale.hardCap
+                              ? formatPresaleAmount(presale.hardCap, presale.paymentTokenDecimals ?? 18)
+                              : '0'}{' '}
+                            {presale.paymentTokenSymbol || ''}
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-full h-2.5 bg-ink/5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all duration-500"
-                          style={{ width: `${presale.progress}%` }}
-                        />
-                      </div>
-                    </div>
 
-                    {/* Raised / Hard Cap */}
-                    <div className="flex justify-between text-body-sm">
-                      <div>
-                        <p className="text-ink-muted">Raised</p>
-                        <p className="text-ink font-medium">
-                          {presale.totalRaised
-                            ? formatPresaleAmount(presale.totalRaised, presale.paymentTokenDecimals ?? 18)
-                            : '0'}{' '}
-                          {presale.paymentTokenSymbol || ''}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-ink-muted">Hard Cap</p>
-                        <p className="text-ink font-medium">
-                          {presale.hardCap
-                            ? formatPresaleAmount(presale.hardCap, presale.paymentTokenDecimals ?? 18)
-                            : '0'}{' '}
-                          {presale.paymentTokenSymbol || ''}
-                        </p>
+                      {/* Time Remaining */}
+                      <div className="pt-2 border-t border-ink/5">
+                        <div className="flex items-center gap-2 text-body-sm text-ink-muted">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>
+                            {presale.status === 'upcoming'
+                              ? presale.startTime
+                                ? `Starts in ${formatCountdown(presale.startTime, nowSec)}`
+                                : 'Start date TBD'
+                              : presale.status === 'live'
+                              ? presale.endTime
+                                ? `Ends in ${formatCountdown(presale.endTime, nowSec)}`
+                                : 'End date TBD'
+                              : 'Ended'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Time Remaining */}
-                    <div className="pt-2 border-t border-ink/5">
-                      <div className="flex items-center gap-2 text-body-sm text-ink-muted">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>
-                          {presale.status === 'upcoming'
-                            ? presale.startTime
-                              ? `Starts in ${formatCountdown(presale.startTime, nowSec)}`
-                              : 'Start date TBD'
-                            : presale.status === 'live'
-                            ? presale.endTime
-                              ? `Ends in ${formatCountdown(presale.endTime, nowSec)}`
-                              : 'End date TBD'
-                            : 'Ended'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            ))}
+                  </Link>
+                </div>
+              );
+            })}
 
             {visibleNFTDeployments.map((deployment) => {
               const mintedPercent =
