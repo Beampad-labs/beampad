@@ -18,11 +18,11 @@ import {
 import { usePresaleApproval } from '@/lib/hooks/usePresaleApproval';
 import { getExplorerUrl } from '@/config';
 import {
-  calculatePresaleSaleAmount,
   formatPresaleAmount,
   formatPresaleRateLabel,
 } from '@/lib/utils/presale';
 import { getFriendlyTxErrorMessage } from '@/lib/utils/tx-errors';
+import beampadLogo from '@/assets/Beampad-logo.jpg';
 import {
   ArrowLeft,
   Clock,
@@ -61,6 +61,8 @@ const itemVariants = {
     },
   },
 };
+
+const BEAMPAD_PRESALE_ADDRESS = '0x69a4d1c13cb2308611cac2ca2aa2dfaec2b96622';
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -113,6 +115,8 @@ const PresaleDetailPage: React.FC = () => {
   );
 
   const [contributeAmount, setContributeAmount] = useState('');
+  const isBeamPadPresale =
+    presaleAddress?.toLowerCase() === BEAMPAD_PRESALE_ADDRESS;
 
   const paymentDecimals = presale?.paymentTokenDecimals ?? 18;
   const saleDecimals = presale?.saleTokenDecimals ?? 18;
@@ -241,11 +245,6 @@ const PresaleDetailPage: React.FC = () => {
     return Number((presale.totalRaised * 100n) / presale.hardCap);
   }, [presale?.hardCap, presale?.totalRaised]);
 
-  const saleAmount = useMemo(() => {
-    if (!presale) return 0n;
-    return calculatePresaleSaleAmount(presale.hardCap ?? 0n, presale.rate ?? 0n);
-  }, [presale]);
-
   const rateLabel = useMemo(() => {
     if (!presale?.rate) return '--';
     return formatPresaleRateLabel({
@@ -325,9 +324,20 @@ const PresaleDetailPage: React.FC = () => {
       <motion.section variants={itemVariants} className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1 space-y-1">
-            <h1 className="font-display text-display-lg text-ink">
-              {presale.saleTokenName || presale.saleTokenSymbol || 'Token Sale'}
-            </h1>
+            <div className="flex items-center gap-3">
+              {isBeamPadPresale && (
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-accent/15 bg-canvas-alt shadow-sm ring-2 ring-accent/10 sm:h-14 sm:w-14">
+                  <img
+                    src={beampadLogo}
+                    alt="BeamPad"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
+              <h1 className="font-display text-display-lg text-ink">
+                {presale.saleTokenName || presale.saleTokenSymbol || 'Token Sale'}
+              </h1>
+            </div>
             <p className="text-body text-ink-muted">
               {presale.saleTokenSymbol || 'Unknown'} Presale
             </p>
@@ -422,21 +432,6 @@ const PresaleDetailPage: React.FC = () => {
                   label: 'Exchange Rate',
                   value: rateLabel,
                   icon: TrendingUp,
-                },
-                {
-                  label: 'Tokens For Sale',
-                  value: `${formatPresaleAmount(saleAmount, saleDecimals)} ${saleTokenSymbol}`,
-                  icon: Coins,
-                },
-                {
-                  label: 'Hard Cap',
-                  value: `${formatPresaleAmount(presale.hardCap ?? 0n, paymentDecimals)} ${paymentSymbol}`,
-                  icon: Coins,
-                },
-                {
-                  label: 'Soft Cap',
-                  value: `${formatPresaleAmount(presale.softCap ?? 0n, paymentDecimals)} ${paymentSymbol}`,
-                  icon: Coins,
                 },
                 {
                   label: 'Min Contribution',
